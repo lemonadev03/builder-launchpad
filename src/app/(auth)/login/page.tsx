@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,17 @@ import { Separator } from "@/components/ui/separator";
 type FormState = "idle" | "loading" | "magic-link-sent";
 
 export default function LoginPage() {
+  return (
+    <Suspense>
+      <LoginForm />
+    </Suspense>
+  );
+}
+
+function LoginForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get("redirect") ?? "/feed";
   const [formState, setFormState] = useState<FormState>("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -43,7 +53,7 @@ export default function LoginPage() {
       return;
     }
 
-    router.push("/");
+    router.push(redirectTo);
   }
 
   async function handleMagicLink() {
@@ -56,7 +66,7 @@ export default function LoginPage() {
 
     const { error } = await authClient.signIn.magicLink({
       email,
-      callbackURL: "/",
+      callbackURL: redirectTo,
     });
 
     if (error) {
