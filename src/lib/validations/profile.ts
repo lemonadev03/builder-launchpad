@@ -118,6 +118,7 @@ export const updateProfileSchema = z.object({
     .or(z.literal("")),
   socialLinks: socialLinksSchema,
   tags: tagSlugsSchema.optional(),
+  onboardingCompletedAt: z.literal(true).optional(),
 });
 
 export type UpdateProfileInput = z.infer<typeof updateProfileSchema>;

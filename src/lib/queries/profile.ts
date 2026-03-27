@@ -45,7 +45,7 @@ export async function updateProfile(
   userId: string,
   data: UpdateProfileInput,
 ) {
-  const { tags: tagSlugs, ...fields } = data;
+  const { tags: tagSlugs, onboardingCompletedAt, ...fields } = data;
 
   // Clean empty strings to null for optional fields
   const cleaned: Record<string, unknown> = {};
@@ -55,6 +55,11 @@ export async function updateProfile(
     } else if (value !== undefined) {
       cleaned[key] = value;
     }
+  }
+
+  // Set onboarding completion timestamp
+  if (onboardingCompletedAt === true) {
+    cleaned.onboardingCompletedAt = new Date();
   }
 
   const rows = await db
