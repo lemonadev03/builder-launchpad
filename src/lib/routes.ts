@@ -15,6 +15,8 @@ export const PUBLIC_ROUTE_PREFIXES = [
   "/profile/",
   "/communities/",
   "/api/auth/",
+  "/api/profiles/",
+  "/api/tags",
 ];
 
 export function isPublicRoute(pathname: string): boolean {
