@@ -2,6 +2,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins";
 import { Resend } from "resend";
+import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { checkMagicLinkRateLimit } from "@/lib/rate-limit";
@@ -18,11 +19,64 @@ function getResend() {
 
 const FROM_EMAIL = "Builder Launchpad <noreply@tools.bscalelabs.com>";
 
+function generateUsername(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "")
+    .slice(0, 26) || "user";
+}
+
+async function findAvailableUsername(baseName: string): Promise<string> {
+  const candidate = generateUsername(baseName);
+
+  const existing = await db
+    .select({ username: schema.profile.username })
+    .from(schema.profile)
+    .where(eq(schema.profile.username, candidate))
+    .limit(1);
+
+  if (existing.length === 0) return candidate;
+
+  // Append random digits until unique
+  for (let i = 0; i < 10; i++) {
+    const suffix = Math.floor(1000 + Math.random() * 9000).toString();
+    const withSuffix = `${candidate.slice(0, 26)}${suffix}`;
+
+    const exists = await db
+      .select({ username: schema.profile.username })
+      .from(schema.profile)
+      .where(eq(schema.profile.username, withSuffix))
+      .limit(1);
+
+    if (exists.length === 0) return withSuffix;
+  }
+
+  // Fallback: use crypto random
+  return `${candidate.slice(0, 22)}${Date.now().toString(36).slice(-8)}`;
+}
+
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
     provider: "pg",
     schema,
   }),
+
+  databaseHooks: {
+    user: {
+      create: {
+        after: async (user) => {
+          const username = await findAvailableUsername(user.name);
+
+          await db.insert(schema.profile).values({
+            id: crypto.randomUUID(),
+            userId: user.id,
+            displayName: user.name,
+            username,
+          });
+        },
+      },
+    },
+  },
 
   emailAndPassword: {
     enabled: true,

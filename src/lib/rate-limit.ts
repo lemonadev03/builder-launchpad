@@ -1,38 +1,50 @@
 // App-level rate limiter — in-memory, no Redis dependency.
-// Tracks magic link requests per email: max 5 per hour.
 
-const requests = new Map<string, number[]>();
-
-const MAX_REQUESTS = 5;
-const WINDOW_MS = 60 * 60 * 1000; // 1 hour
-
-export function checkMagicLinkRateLimit(email: string): {
+type RateLimitResult = {
   allowed: boolean;
   remaining: number;
   retryAfterMs: number | null;
-} {
-  const now = Date.now();
-  const key = email.trim().toLowerCase();
+};
 
-  const timestamps = (requests.get(key) ?? []).filter(
-    (t) => now - t < WINDOW_MS,
-  );
+function createRateLimiter(maxRequests: number, windowMs: number) {
+  const requests = new Map<string, number[]>();
 
-  if (timestamps.length >= MAX_REQUESTS) {
-    const oldestInWindow = timestamps[0];
+  return function check(key: string): RateLimitResult {
+    const now = Date.now();
+    const normalizedKey = key.trim().toLowerCase();
+
+    const timestamps = (requests.get(normalizedKey) ?? []).filter(
+      (t) => now - t < windowMs,
+    );
+
+    if (timestamps.length >= maxRequests) {
+      const oldestInWindow = timestamps[0];
+      return {
+        allowed: false,
+        remaining: 0,
+        retryAfterMs: windowMs - (now - oldestInWindow),
+      };
+    }
+
+    timestamps.push(now);
+    requests.set(normalizedKey, timestamps);
+
     return {
-      allowed: false,
-      remaining: 0,
-      retryAfterMs: WINDOW_MS - (now - oldestInWindow),
+      allowed: true,
+      remaining: maxRequests - timestamps.length,
+      retryAfterMs: null,
     };
-  }
-
-  timestamps.push(now);
-  requests.set(key, timestamps);
-
-  return {
-    allowed: true,
-    remaining: MAX_REQUESTS - timestamps.length,
-    retryAfterMs: null,
   };
 }
+
+// 5 magic link requests per email per hour
+export const checkMagicLinkRateLimit = createRateLimiter(5, 60 * 60 * 1000);
+
+// 20 profile updates per user per hour
+export const checkProfileUpdateRateLimit = createRateLimiter(
+  20,
+  60 * 60 * 1000,
+);
+
+// 10 file uploads per user per hour
+export const checkUploadRateLimit = createRateLimiter(10, 60 * 60 * 1000);
