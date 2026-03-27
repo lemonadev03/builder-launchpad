@@ -5,11 +5,11 @@ const nextConfig: NextConfig = {
     remotePatterns: [
       {
         protocol: "https",
-        hostname: "*.s3.*.amazonaws.com",
+        hostname: "*.railway.app",
       },
       {
         protocol: "https",
-        hostname: "*.r2.cloudflarestorage.com",
+        hostname: "*.s3.*.amazonaws.com",
       },
     ],
   },
