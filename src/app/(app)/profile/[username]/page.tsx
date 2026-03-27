@@ -1,0 +1,131 @@
+import { notFound } from "next/navigation";
+import type { Metadata } from "next";
+import { GraduationCap } from "lucide-react";
+import { getProfileByUsername } from "@/lib/queries/profile";
+import { ProfileHeader } from "@/components/profile-header";
+import { ProfileTags } from "@/components/profile-tags";
+import { SocialLinks } from "@/components/social-links";
+import type { SocialLinks as SocialLinksType } from "@/db/schema";
+
+interface Props {
+  params: Promise<{ username: string }>;
+}
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { username } = await params;
+  const p = await getProfileByUsername(username);
+
+  if (!p) {
+    return { title: "Profile Not Found | Builder Launchpad" };
+  }
+
+  const description =
+    p.tagline || p.bio?.slice(0, 160) || `${p.displayName} on Builder Launchpad`;
+
+  return {
+    title: `${p.displayName} (@${p.username}) | Builder Launchpad`,
+    description,
+    openGraph: {
+      title: `${p.displayName} (@${p.username})`,
+      description,
+      ...(p.avatarUrl && { images: [{ url: p.avatarUrl }] }),
+    },
+  };
+}
+
+export default async function ProfilePage({ params }: Props) {
+  const { username } = await params;
+  const p = await getProfileByUsername(username);
+
+  if (!p) notFound();
+
+  const socialLinks = (p.socialLinks ?? {}) as SocialLinksType;
+  const hasEducation = p.educationSchool || p.educationProgram;
+  const hasSocialLinks = Object.values(socialLinks).some(
+    (v) => v && v.trim() !== "",
+  );
+
+  return (
+    <div className="mx-auto max-w-2xl">
+      <ProfileHeader
+        displayName={p.displayName}
+        username={p.username}
+        tagline={p.tagline}
+        avatarUrl={p.avatarUrl}
+        bannerUrl={p.bannerUrl}
+        location={p.location}
+      />
+
+      <div className="mt-4 space-y-6 px-4 sm:px-6">
+        {/* Tags */}
+        <ProfileTags tags={p.tags} />
+
+        {/* Bio */}
+        {p.bio && (
+          <section>
+            <h2 className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              About
+            </h2>
+            <p className="whitespace-pre-line text-sm leading-relaxed">
+              {p.bio}
+            </p>
+          </section>
+        )}
+
+        {/* Social Links */}
+        {hasSocialLinks && (
+          <section>
+            <h2 className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Links
+            </h2>
+            <SocialLinks links={socialLinks} />
+          </section>
+        )}
+
+        {/* Education */}
+        {hasEducation && (
+          <section>
+            <h2 className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Education
+            </h2>
+            <div className="flex items-start gap-2 text-sm">
+              <GraduationCap className="mt-0.5 h-4 w-4 text-muted-foreground" />
+              <div>
+                {p.educationSchool && (
+                  <p className="font-medium">{p.educationSchool}</p>
+                )}
+                {p.educationProgram && (
+                  <p className="text-muted-foreground">
+                    {p.educationProgram}
+                    {p.educationYear && ` · ${p.educationYear}`}
+                  </p>
+                )}
+                {!p.educationProgram && p.educationYear && (
+                  <p className="text-muted-foreground">{p.educationYear}</p>
+                )}
+              </div>
+            </div>
+          </section>
+        )}
+
+        {/* Community memberships placeholder */}
+        <section>
+          <h2 className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Communities
+          </h2>
+          <p className="text-sm text-muted-foreground">
+            No community memberships yet.
+          </p>
+        </section>
+
+        {/* Blog posts placeholder */}
+        <section>
+          <h2 className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+            Posts
+          </h2>
+          <p className="text-sm text-muted-foreground">No posts yet.</p>
+        </section>
+      </div>
+    </div>
+  );
+}
