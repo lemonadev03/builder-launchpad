@@ -6,16 +6,17 @@ import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { checkMagicLinkRateLimit } from "@/lib/rate-limit";
 
-if (!process.env.RESEND_API_KEY) {
-  throw new Error("RESEND_API_KEY is required");
-}
-if (!process.env.BETTER_AUTH_SECRET) {
-  throw new Error("BETTER_AUTH_SECRET is required");
+function getResend() {
+  if (!process.env.RESEND_API_KEY) {
+    throw new Error("RESEND_API_KEY is required");
+  }
+  if (!process.env.BETTER_AUTH_SECRET) {
+    throw new Error("BETTER_AUTH_SECRET is required");
+  }
+  return new Resend(process.env.RESEND_API_KEY);
 }
 
-const resend = new Resend(process.env.RESEND_API_KEY);
-
-const FROM_EMAIL = "Builder Launchpad <noreply@builder-launchpad.bscalelabs.com>";
+const FROM_EMAIL = "Builder Launchpad <noreply@tools.bscalelabs.com>";
 
 export const auth = betterAuth({
   database: drizzleAdapter(db, {
@@ -36,7 +37,7 @@ export const auth = betterAuth({
           throw new Error("Too many magic link requests. Please try again later.");
         }
 
-        await resend.emails.send({
+        await getResend().emails.send({
           from: FROM_EMAIL,
           to: email,
           subject: "Sign in to Builder Launchpad",
