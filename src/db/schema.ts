@@ -6,6 +6,7 @@ import {
   primaryKey,
   text,
   timestamp,
+  unique,
 } from "drizzle-orm/pg-core";
 
 // ── Better Auth core tables ─────────────────────────────────────────
@@ -16,6 +17,7 @@ export const user = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
+  isPlatformAdmin: boolean("is_platform_admin").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -148,4 +150,77 @@ export const profileTag = pgTable(
       .references(() => tag.id, { onDelete: "cascade" }),
   },
   (table) => [primaryKey({ columns: [table.profileId, table.tagId] })],
+);
+
+// ── Communities ──────────────────────────────────────────────────────
+
+export const community = pgTable(
+  "community",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    slug: text("slug").notNull().unique(),
+    description: text("description"),
+    tagline: text("tagline"),
+    location: text("location"),
+    logoUrl: text("logo_url"),
+    bannerUrl: text("banner_url"),
+    primaryColor: text("primary_color"),
+    visibility: text("visibility", { enum: ["listed", "unlisted"] })
+      .default("listed")
+      .notNull(),
+    joinPolicy: text("join_policy", {
+      enum: ["invite_only", "request_to_join", "open"],
+    })
+      .default("invite_only")
+      .notNull(),
+    // Self-referencing parent — FK added manually in migration (Drizzle self-ref limitation)
+    parentId: text("parent_id"),
+    subTierLabel: text("sub_tier_label"),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    archivedAt: timestamp("archived_at"),
+  },
+  (table) => [
+    index("community_slug_idx").on(table.slug),
+    index("community_created_by_idx").on(table.createdBy),
+    index("community_parent_id_idx").on(table.parentId),
+  ],
+);
+
+// ── Membership ──────────────────────────────────────────────────────
+
+export const membership = pgTable(
+  "membership",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    communityId: text("community_id")
+      .notNull()
+      .references(() => community.id, { onDelete: "cascade" }),
+    role: text("role", { enum: ["admin", "moderator", "member"] })
+      .default("member")
+      .notNull(),
+    status: text("status", { enum: ["active", "pending", "suspended"] })
+      .default("active")
+      .notNull(),
+    joinedAt: timestamp("joined_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [
+    unique("membership_user_community_uniq").on(table.userId, table.communityId),
+    index("membership_user_id_idx").on(table.userId),
+    index("membership_community_id_idx").on(table.communityId),
+  ],
 );

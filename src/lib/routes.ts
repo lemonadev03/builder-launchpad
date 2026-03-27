@@ -1,5 +1,5 @@
 // Public routes that do not require authentication.
-// Everything else is protected by middleware.
+// Everything else is protected by the proxy.
 
 export const PUBLIC_ROUTES = [
   "/",
@@ -17,6 +17,7 @@ export const PUBLIC_ROUTE_PREFIXES = [
   "/api/auth/",
   "/api/profiles/",
   "/api/tags",
+  "/api/communities",
 ];
 
 export function isPublicRoute(pathname: string): boolean {
