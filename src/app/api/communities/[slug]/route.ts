@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
 import { requireApiAuth } from "@/lib/api-auth";
 import { auth } from "@/lib/auth";
 import { checkCommunityUpdateRateLimit } from "@/lib/rate-limit";
@@ -10,30 +9,11 @@ import {
   archiveCommunity,
   checkSlugAvailable,
 } from "@/lib/queries/community";
-import { db } from "@/db";
-import { membership } from "@/db/schema";
+import { getMembership } from "@/lib/queries/membership";
+import { requireCommunityPermission } from "@/lib/permissions";
 
 interface Props {
   params: Promise<{ slug: string }>;
-}
-
-function isAdmin(role: string) {
-  return role === "admin";
-}
-
-async function getUserMembership(userId: string, communityId: string) {
-  const rows = await db
-    .select({ role: membership.role, status: membership.status })
-    .from(membership)
-    .where(
-      and(
-        eq(membership.userId, userId),
-        eq(membership.communityId, communityId),
-        eq(membership.status, "active"),
-      ),
-    )
-    .limit(1);
-  return rows[0] ?? null;
 }
 
 export async function GET(request: Request, { params }: Props) {
@@ -57,8 +37,8 @@ export async function GET(request: Request, { params }: Props) {
       );
     }
 
-    const mem = await getUserMembership(session.user.id, c.id);
-    if (!mem) {
+    const mem = await getMembership(session.user.id, c.id);
+    if (!mem || mem.status !== "active") {
       return NextResponse.json(
         { error: "Community not found" },
         { status: 404 },
@@ -82,10 +62,12 @@ export async function PUT(request: Request, { params }: Props) {
     );
   }
 
-  const mem = await getUserMembership(session.user.id, c.id);
-  if (!mem || !isAdmin(mem.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const forbidden = await requireCommunityPermission(
+    session.user.id,
+    c.id,
+    "community.edit",
+  );
+  if (forbidden) return forbidden;
 
   const rateCheck = checkCommunityUpdateRateLimit(session.user.id);
   if (!rateCheck.allowed) {
@@ -144,10 +126,12 @@ export async function DELETE(request: Request, { params }: Props) {
     );
   }
 
-  const mem = await getUserMembership(session.user.id, c.id);
-  if (!mem || !isAdmin(mem.role)) {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  }
+  const forbidden = await requireCommunityPermission(
+    session.user.id,
+    c.id,
+    "community.delete",
+  );
+  if (forbidden) return forbidden;
 
   const archived = await archiveCommunity(c.id);
   if (!archived) {
