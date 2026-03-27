@@ -10,6 +10,9 @@ import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { useDebounce } from "@/hooks/use-debounce";
+import { CommunityLogoUpload } from "@/components/community-logo-upload";
+import { CommunityBannerUpload } from "@/components/community-banner-upload";
+import { ColorPicker } from "@/components/color-picker";
 
 interface CommunityData {
   name: string;
@@ -19,6 +22,9 @@ interface CommunityData {
   location: string | null;
   visibility: "listed" | "unlisted";
   joinPolicy: "invite_only" | "request_to_join" | "open";
+  logoUrl: string | null;
+  bannerUrl: string | null;
+  primaryColor: string | null;
 }
 
 interface CommunitySettingsFormProps {
@@ -43,6 +49,9 @@ export function CommunitySettingsForm({
   const [location, setLocation] = useState(community.location ?? "");
   const [visibility, setVisibility] = useState(community.visibility);
   const [joinPolicy, setJoinPolicy] = useState(community.joinPolicy);
+  const [primaryColor, setPrimaryColor] = useState(
+    community.primaryColor ?? "",
+  );
 
   // Slug availability check
   const [slugStatus, setSlugStatus] = useState<
@@ -92,6 +101,7 @@ export function CommunitySettingsForm({
           location,
           visibility,
           joinPolicy,
+          primaryColor: primaryColor || undefined,
         }),
       });
 
@@ -280,6 +290,36 @@ export function CommunitySettingsForm({
             ))}
           </div>
         </div>
+      </section>
+
+      <Separator />
+
+      {/* Branding */}
+      <section className="space-y-4">
+        <h3 className="text-sm font-medium uppercase tracking-wider text-muted-foreground">
+          Branding
+        </h3>
+
+        <div className="space-y-2">
+          <Label>Logo</Label>
+          <CommunityLogoUpload
+            currentUrl={community.logoUrl}
+            communitySlug={community.slug}
+            communityName={community.name}
+            onUploaded={() => router.refresh()}
+          />
+        </div>
+
+        <div className="space-y-2">
+          <Label>Banner</Label>
+          <CommunityBannerUpload
+            currentUrl={community.bannerUrl}
+            communitySlug={community.slug}
+            onUploaded={() => router.refresh()}
+          />
+        </div>
+
+        <ColorPicker value={primaryColor} onChange={setPrimaryColor} />
       </section>
 
       <Separator />

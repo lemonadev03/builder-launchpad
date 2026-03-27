@@ -35,6 +35,9 @@ export default async function ManageSettingsPage({ params }: Props) {
             | "invite_only"
             | "request_to_join"
             | "open",
+          logoUrl: community.logoUrl,
+          bannerUrl: community.bannerUrl,
+          primaryColor: community.primaryColor,
         }}
       />
     </div>

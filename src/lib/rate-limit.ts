@@ -60,3 +60,9 @@ export const checkCommunityUpdateRateLimit = createRateLimiter(
   20,
   60 * 60 * 1000,
 );
+
+// 10 community uploads per user per hour
+export const checkCommunityUploadRateLimit = createRateLimiter(
+  10,
+  60 * 60 * 1000,
+);

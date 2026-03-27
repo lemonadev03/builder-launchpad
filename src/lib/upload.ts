@@ -50,3 +50,21 @@ export function generateS3Key(
 ): string {
   return `profiles/${userId}/${type}-${Date.now()}.jpg`;
 }
+
+// ── Community images ────────────────────────────────────────────────
+
+export const MAX_LOGO_SIZE = 5 * 1024 * 1024; // 5MB
+
+export async function processLogo(buffer: Buffer): Promise<Buffer> {
+  return sharp(buffer)
+    .resize(400, 400, { fit: "cover", position: "center" })
+    .jpeg({ quality: 85 })
+    .toBuffer();
+}
+
+export function generateCommunityS3Key(
+  communityId: string,
+  type: "logo" | "banner",
+): string {
+  return `communities/${communityId}/${type}-${Date.now()}.jpg`;
+}
