@@ -66,3 +66,9 @@ export const checkCommunityUploadRateLimit = createRateLimiter(
   10,
   60 * 60 * 1000,
 );
+
+// 5 email invite batches per community per hour
+export const checkEmailInviteRateLimit = createRateLimiter(
+  5,
+  60 * 60 * 1000,
+);

@@ -12,7 +12,11 @@ function generateToken(): string {
     .replace(/=+$/, "");
 }
 
-export async function createInvite(communityId: string, createdBy: string) {
+export async function createInvite(
+  communityId: string,
+  createdBy: string,
+  email?: string,
+) {
   const [created] = await db
     .insert(invite)
     .values({
@@ -20,10 +24,29 @@ export async function createInvite(communityId: string, createdBy: string) {
       token: generateToken(),
       communityId,
       createdBy,
+      email: email ?? null,
+      emailStatus: email ? "sent" : null,
     })
     .returning();
 
   return created;
+}
+
+export async function createEmailInvites(
+  communityId: string,
+  createdBy: string,
+  emails: string[],
+) {
+  const values = emails.map((email) => ({
+    id: crypto.randomUUID(),
+    token: generateToken(),
+    communityId,
+    createdBy,
+    email,
+    emailStatus: "sent" as const,
+  }));
+
+  return db.insert(invite).values(values).returning();
 }
 
 export async function getInviteByToken(token: string) {
@@ -33,6 +56,7 @@ export async function getInviteByToken(token: string) {
       token: invite.token,
       communityId: invite.communityId,
       createdBy: invite.createdBy,
+      email: invite.email,
       revokedAt: invite.revokedAt,
       createdAt: invite.createdAt,
     })
@@ -48,6 +72,8 @@ export async function getInvitesByCommunity(communityId: string) {
     .select({
       id: invite.id,
       token: invite.token,
+      email: invite.email,
+      emailStatus: invite.emailStatus,
       revokedAt: invite.revokedAt,
       createdAt: invite.createdAt,
     })
@@ -108,7 +134,7 @@ export async function redeemInvite(token: string, userId: string) {
     return { error: "already_member" as const, slug: comm.slug };
   }
 
-  // Create membership
+  // Create membership and mark email invite as redeemed
   await db.insert(membership).values({
     id: crypto.randomUUID(),
     userId,
@@ -116,6 +142,13 @@ export async function redeemInvite(token: string, userId: string) {
     role: "member",
     status: "active",
   });
+
+  if (inv.email) {
+    await db
+      .update(invite)
+      .set({ emailStatus: "redeemed" })
+      .where(eq(invite.id, inv.id));
+  }
 
   return { error: null, slug: comm.slug };
 }

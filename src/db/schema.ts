@@ -207,6 +207,8 @@ export const invite = pgTable(
     createdBy: text("created_by")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    email: text("email"),
+    emailStatus: text("email_status", { enum: ["sent", "redeemed"] }),
     revokedAt: timestamp("revoked_at"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
