@@ -1,4 +1,4 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { membership, community } from "@/db/schema";
 
@@ -64,7 +64,9 @@ export async function cascadeLeaveDescendants(
     const children = await db
       .select({ id: community.id })
       .from(community)
-      .where(eq(community.parentId, parentId));
+      .where(
+        and(eq(community.parentId, parentId), isNull(community.archivedAt)),
+      );
 
     for (const child of children) {
       descendantIds.push(child.id);
@@ -74,14 +76,14 @@ export async function cascadeLeaveDescendants(
 
   await collect(communityId, 0);
 
-  // Remove membership from all descendants
-  for (const descId of descendantIds) {
+  // Batch-remove memberships from all descendants
+  if (descendantIds.length > 0) {
     await db
       .delete(membership)
       .where(
         and(
           eq(membership.userId, userId),
-          eq(membership.communityId, descId),
+          inArray(membership.communityId, descendantIds),
         ),
       );
   }

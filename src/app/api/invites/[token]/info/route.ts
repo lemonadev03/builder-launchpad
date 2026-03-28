@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { getInviteByToken } from "@/lib/queries/invite";
+import { checkInviteInfoRateLimit } from "@/lib/rate-limit";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { community } from "@/db/schema";
@@ -10,6 +11,16 @@ interface Props {
 
 export async function GET(request: Request, { params }: Props) {
   const { token } = await params;
+
+  // Rate limit by IP to prevent token enumeration
+  const ip = request.headers.get("x-forwarded-for") ?? "unknown";
+  const rateCheck = checkInviteInfoRateLimit(ip);
+  if (!rateCheck.allowed) {
+    return NextResponse.json(
+      { error: "Too many requests" },
+      { status: 429 },
+    );
+  }
 
   const inv = await getInviteByToken(token);
   if (!inv || inv.revokedAt) {

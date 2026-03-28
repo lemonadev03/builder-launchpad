@@ -1,6 +1,10 @@
 import { notFound } from "next/navigation";
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { community } from "@/db/schema";
 import { getCommunityBySlug } from "@/lib/queries/community";
 import { getCommunityTree } from "@/lib/queries/community-tree";
+import { getMembership } from "@/lib/queries/membership";
 import { getSession } from "@/lib/session";
 import { hasPermission } from "@/lib/permissions";
 import { OrgChart } from "@/components/org-chart";
@@ -16,40 +20,38 @@ export default async function OrgChartPage({ params }: Props) {
 
   if (!c || c.archivedAt) notFound();
 
-  // Find the root community to build the full tree
-  let rootId = c.id;
-  let rootSlug = slug;
-  if (c.parentId) {
-    // Walk up to root
-    let currentId: string | null = c.parentId;
-    const { community: commTable } = await import("@/db/schema");
-    const { eq } = await import("drizzle-orm");
-    const { db } = await import("@/db");
+  // Require membership to view org chart
+  if (!session) notFound();
+  const mem = await getMembership(session.user.id, c.id);
+  if (!mem || mem.status !== "active") notFound();
 
-    while (currentId) {
+  // Walk up to root community
+  let rootId = c.id;
+  if (c.parentId) {
+    let currentId: string | null = c.parentId;
+    let iterations = 0;
+
+    while (currentId && iterations < 5) {
       const [parent] = await db
         .select({
-          id: commTable.id,
-          slug: commTable.slug,
-          parentId: commTable.parentId,
+          id: community.id,
+          parentId: community.parentId,
         })
-        .from(commTable)
-        .where(eq(commTable.id, currentId))
+        .from(community)
+        .where(eq(community.id, currentId))
         .limit(1);
 
       if (!parent) break;
       rootId = parent.id;
-      rootSlug = parent.slug;
       currentId = parent.parentId;
+      iterations++;
     }
   }
 
   const tree = await getCommunityTree(rootId);
   if (!tree) notFound();
 
-  const isAdmin = session
-    ? await hasPermission(session.user.id, c.id, "community.edit")
-    : false;
+  const isAdmin = await hasPermission(session.user.id, c.id, "community.edit");
 
   return (
     <div className="mx-auto max-w-4xl">

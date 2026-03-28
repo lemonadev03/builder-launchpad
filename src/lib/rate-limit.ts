@@ -72,3 +72,6 @@ export const checkEmailInviteRateLimit = createRateLimiter(
   5,
   60 * 60 * 1000,
 );
+
+// 30 invite info lookups per IP per minute (anti-enumeration)
+export const checkInviteInfoRateLimit = createRateLimiter(30, 60 * 1000);

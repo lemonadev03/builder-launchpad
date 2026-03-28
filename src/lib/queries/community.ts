@@ -12,7 +12,10 @@ export async function createCommunity(
   const slug = data.slug || (await findAvailableSlug(data.name));
   const communityId = crypto.randomUUID();
   const membershipId = crypto.randomUUID();
-  const depth = data.parentId && parentDepth !== undefined ? parentDepth + 1 : 0;
+  if (data.parentId && parentDepth === undefined) {
+    throw new Error("parentDepth required when creating a sub-community");
+  }
+  const depth = data.parentId ? (parentDepth ?? 0) + 1 : 0;
 
   return db.transaction(async (tx) => {
     const [created] = await tx

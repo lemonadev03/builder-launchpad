@@ -10,7 +10,7 @@ import {
 } from "@/lib/queries/join-request";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
-import { joinRequest, user } from "@/db/schema";
+import { user } from "@/db/schema";
 
 interface Props {
   params: Promise<{ slug: string; requestId: string }>;
@@ -73,23 +73,16 @@ export async function PUT(request: Request, { params }: Props) {
       );
     }
 
-    // Send approval email
+    // Send approval email using the result we already have
     try {
-      const [req] = await db
-        .select({ userId: joinRequest.userId })
-        .from(joinRequest)
-        .where(eq(joinRequest.id, requestId))
+      const [reqUser] = await db
+        .select({ email: user.email, name: user.name })
+        .from(user)
+        .where(eq(user.id, result.userId))
         .limit(1);
 
-      if (req) {
-        const [reqUser] = await db
-          .select({ email: user.email, name: user.name })
-          .from(user)
-          .where(eq(user.id, req.userId))
-          .limit(1);
-
-        if (reqUser) {
-          await getResend().emails.send({
+      if (reqUser) {
+        await getResend().emails.send({
             from: FROM_EMAIL,
             to: reqUser.email,
             subject: `You've been accepted to ${c.name}!`,
@@ -108,7 +101,6 @@ export async function PUT(request: Request, { params }: Props) {
             `,
           });
         }
-      }
     } catch {
       // Email failure is non-blocking
     }

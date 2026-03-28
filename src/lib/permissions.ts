@@ -113,7 +113,7 @@ export async function getEffectiveRole(
     .limit(1);
 
   if (comm[0]?.parentId) {
-    return getInheritedRole(userId, comm[0].parentId, 5);
+    return getInheritedRole(userId, comm[0].parentId, 4);
   }
 
   return null;
