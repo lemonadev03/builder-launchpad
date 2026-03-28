@@ -172,6 +172,15 @@ export default async function CommunityPage({ params }: Props) {
             )}
           </div>
 
+          {children.length > 0 && (
+            <Link
+              href={`/communities/${slug}/org-chart`}
+              className="text-xs text-primary hover:underline"
+            >
+              View org chart
+            </Link>
+          )}
+
           {children.length === 0 ? (
             <p className="text-sm text-muted-foreground">
               No {tierLabel.toLowerCase()} yet.
