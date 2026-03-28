@@ -10,6 +10,7 @@ interface Member {
   id: string;
   userId: string;
   role: string;
+  status: string;
   displayName: string;
   username: string;
   avatarUrl: string | null;
@@ -76,6 +77,70 @@ export function MembersTable({
     }
   }
 
+  async function handleSuspend(userId: string, displayName: string) {
+    if (!confirm(`Suspend ${displayName}? They will not be able to access community content.`)) return;
+
+    setLoading(userId);
+    try {
+      const res = await fetch(
+        `/api/communities/${communitySlug}/members/${userId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "suspend" }),
+        },
+      );
+
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "Failed to suspend");
+        return;
+      }
+
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.userId === userId ? { ...m, status: "suspended" } : m,
+        ),
+      );
+      toast.success(`${displayName} suspended`);
+    } catch {
+      toast.error("Failed to suspend");
+    } finally {
+      setLoading(null);
+    }
+  }
+
+  async function handleUnsuspend(userId: string, displayName: string) {
+    setLoading(userId);
+    try {
+      const res = await fetch(
+        `/api/communities/${communitySlug}/members/${userId}`,
+        {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ action: "unsuspend" }),
+        },
+      );
+
+      if (!res.ok) {
+        const data = await res.json();
+        toast.error(data.error || "Failed to unsuspend");
+        return;
+      }
+
+      setMembers((prev) =>
+        prev.map((m) =>
+          m.userId === userId ? { ...m, status: "active" } : m,
+        ),
+      );
+      toast.success(`${displayName} unsuspended`);
+    } catch {
+      toast.error("Failed to unsuspend");
+    } finally {
+      setLoading(null);
+    }
+  }
+
   async function handleRemove(userId: string, displayName: string) {
     if (!confirm(`Remove ${displayName} from this community?`)) return;
 
@@ -106,11 +171,12 @@ export function MembersTable({
       {members.map((m) => {
         const isSelf = m.userId === currentUserId;
         const isLoading = loading === m.userId;
+        const isSuspended = m.status === "suspended";
 
         return (
           <div
             key={m.id}
-            className="flex items-center gap-3 rounded-lg border px-4 py-3"
+            className={`flex items-center gap-3 rounded-lg border px-4 py-3 ${isSuspended ? "opacity-60" : ""}`}
           >
             <Avatar>
               {m.avatarUrl ? (
@@ -126,6 +192,12 @@ export function MembersTable({
               </p>
             </div>
 
+            {isSuspended && (
+              <Badge variant="destructive" className="text-xs">
+                Suspended
+              </Badge>
+            )}
+
             {isSelf ? (
               <Badge variant={roleBadgeVariant(m.role)}>
                 {m.role}{" "}
@@ -133,18 +205,41 @@ export function MembersTable({
               </Badge>
             ) : (
               <>
-                <select
-                  value={m.role}
-                  onChange={(e) => handleRoleChange(m.userId, e.target.value)}
-                  disabled={isLoading}
-                  className="h-8 rounded-md border bg-background px-2 text-xs"
-                >
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
+                {!isSuspended && (
+                  <select
+                    value={m.role}
+                    onChange={(e) => handleRoleChange(m.userId, e.target.value)}
+                    disabled={isLoading}
+                    className="h-8 rounded-md border bg-background px-2 text-xs"
+                  >
+                    {ROLES.map((r) => (
+                      <option key={r} value={r}>
+                        {r}
+                      </option>
+                    ))}
+                  </select>
+                )}
+
+                {isSuspended ? (
+                  <Button
+                    variant="outline"
+                    size="xs"
+                    onClick={() => handleUnsuspend(m.userId, m.displayName)}
+                    disabled={isLoading}
+                  >
+                    Unsuspend
+                  </Button>
+                ) : (
+                  <Button
+                    variant="ghost"
+                    size="xs"
+                    onClick={() => handleSuspend(m.userId, m.displayName)}
+                    disabled={isLoading}
+                    className="text-amber-600 hover:text-amber-600"
+                  >
+                    Suspend
+                  </Button>
+                )}
 
                 <Button
                   variant="ghost"

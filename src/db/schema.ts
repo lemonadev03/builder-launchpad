@@ -268,6 +268,7 @@ export const membership = pgTable(
       .default("active")
       .notNull(),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
+    leftAt: timestamp("left_at"),
     updatedAt: timestamp("updated_at")
       .defaultNow()
       .$onUpdate(() => new Date())

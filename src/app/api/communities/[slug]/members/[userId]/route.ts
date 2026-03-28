@@ -7,6 +7,9 @@ import {
   updateMemberRole,
   removeMember,
   getAdminCount,
+  suspendMember,
+  unsuspendMember,
+  leaveCommunity,
 } from "@/lib/queries/membership";
 import { requireCommunityPermission } from "@/lib/permissions";
 
@@ -14,8 +17,9 @@ interface Props {
   params: Promise<{ slug: string; userId: string }>;
 }
 
-const updateRoleSchema = z.object({
-  role: z.enum(["admin", "moderator", "member"]),
+const updateSchema = z.object({
+  role: z.enum(["admin", "moderator", "member"]).optional(),
+  action: z.enum(["suspend", "unsuspend"]).optional(),
 });
 
 export async function PUT(request: Request, { params }: Props) {
@@ -31,29 +35,6 @@ export async function PUT(request: Request, { params }: Props) {
     );
   }
 
-  const forbidden = await requireCommunityPermission(
-    session.user.id,
-    c.id,
-    "member.change_role",
-  );
-  if (forbidden) return forbidden;
-
-  // No self-promotion
-  if (targetUserId === session.user.id) {
-    return NextResponse.json(
-      { error: "Cannot change your own role" },
-      { status: 400 },
-    );
-  }
-
-  const mem = await getMembership(targetUserId, c.id);
-  if (!mem || mem.status !== "active") {
-    return NextResponse.json(
-      { error: "Member not found" },
-      { status: 404 },
-    );
-  }
-
   let body: unknown;
   try {
     body = await request.json();
@@ -61,7 +42,7 @@ export async function PUT(request: Request, { params }: Props) {
     return NextResponse.json({ error: "Invalid JSON" }, { status: 400 });
   }
 
-  const parsed = updateRoleSchema.safeParse(body);
+  const parsed = updateSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
       { error: "Validation failed", issues: parsed.error.issues },
@@ -69,19 +50,92 @@ export async function PUT(request: Request, { params }: Props) {
     );
   }
 
-  // Prevent demoting the last admin
-  if (mem.role === "admin" && parsed.data.role !== "admin") {
-    const adminCount = await getAdminCount(c.id);
-    if (adminCount <= 1) {
+  // Handle suspend/unsuspend
+  if (parsed.data.action) {
+    const forbidden = await requireCommunityPermission(
+      session.user.id,
+      c.id,
+      "community.manage_members",
+    );
+    if (forbidden) return forbidden;
+
+    if (targetUserId === session.user.id) {
       return NextResponse.json(
-        { error: "Cannot demote the last admin" },
+        { error: "Cannot suspend yourself" },
         { status: 400 },
       );
     }
+
+    const mem = await getMembership(targetUserId, c.id);
+    if (!mem) {
+      return NextResponse.json(
+        { error: "Member not found" },
+        { status: 404 },
+      );
+    }
+
+    if (parsed.data.action === "suspend") {
+      if (mem.status !== "active") {
+        return NextResponse.json(
+          { error: "Member is not active" },
+          { status: 400 },
+        );
+      }
+      const updated = await suspendMember(mem.id);
+      return NextResponse.json({ membership: updated });
+    }
+
+    // unsuspend
+    if (mem.status !== "suspended") {
+      return NextResponse.json(
+        { error: "Member is not suspended" },
+        { status: 400 },
+      );
+    }
+    const updated = await unsuspendMember(mem.id);
+    return NextResponse.json({ membership: updated });
   }
 
-  const updated = await updateMemberRole(mem.id, parsed.data.role);
-  return NextResponse.json({ membership: updated });
+  // Handle role change
+  if (parsed.data.role) {
+    const forbidden = await requireCommunityPermission(
+      session.user.id,
+      c.id,
+      "member.change_role",
+    );
+    if (forbidden) return forbidden;
+
+    if (targetUserId === session.user.id) {
+      return NextResponse.json(
+        { error: "Cannot change your own role" },
+        { status: 400 },
+      );
+    }
+
+    const mem = await getMembership(targetUserId, c.id);
+    if (!mem || mem.status !== "active") {
+      return NextResponse.json(
+        { error: "Member not found" },
+        { status: 404 },
+      );
+    }
+
+    // Prevent demoting the last admin
+    if (mem.role === "admin" && parsed.data.role !== "admin") {
+      const adminCount = await getAdminCount(c.id);
+      if (adminCount <= 1) {
+        return NextResponse.json(
+          { error: "Cannot demote the last admin" },
+          { status: 400 },
+        );
+      }
+    }
+
+    const updated = await updateMemberRole(mem.id, parsed.data.role);
+    return NextResponse.json({ membership: updated });
+  }
+
+  return NextResponse.json({ error: "No action specified" }, { status: 400 });
 }
 
 export async function DELETE(request: Request, { params }: Props) {
@@ -97,6 +151,25 @@ export async function DELETE(request: Request, { params }: Props) {
     );
   }
 
+  // Self-leave: any member can leave
+  if (targetUserId === session.user.id) {
+    const result = await leaveCommunity(session.user.id, c.id);
+    if (result.error === "not_member") {
+      return NextResponse.json(
+        { error: "Not a member" },
+        { status: 404 },
+      );
+    }
+    if (result.error === "last_admin") {
+      return NextResponse.json(
+        { error: "Cannot leave as the last admin" },
+        { status: 400 },
+      );
+    }
+    return NextResponse.json({ message: "Left community" });
+  }
+
+  // Admin removing another member
   const forbidden = await requireCommunityPermission(
     session.user.id,
     c.id,

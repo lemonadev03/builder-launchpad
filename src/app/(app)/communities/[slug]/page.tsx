@@ -6,6 +6,7 @@ import { getUserJoinRequestStatus } from "@/lib/queries/join-request";
 import { getSession } from "@/lib/session";
 import { CommunityHeader } from "@/components/community-header";
 import { JoinButton } from "@/components/join-button";
+import { LeaveButton } from "@/components/leave-button";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -49,11 +50,13 @@ export default async function CommunityPage({ params }: Props) {
 
   // Check if current user is a member + join request status
   let isMember = false;
+  let isSuspended = false;
   let requestStatus: string | null = null;
   if (session) {
     const mem = await getMembership(session.user.id, c.id);
     isMember = mem?.status === "active";
-    if (!isMember) {
+    isSuspended = mem?.status === "suspended";
+    if (!isMember && !isSuspended) {
       requestStatus = await getUserJoinRequestStatus(session.user.id, c.id);
     }
   }
@@ -71,6 +74,13 @@ export default async function CommunityPage({ params }: Props) {
       />
 
       <div className="mt-4 space-y-6 px-4 sm:px-6">
+        {/* Suspended notice */}
+        {isSuspended && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4 text-sm text-destructive">
+            Your membership in this community has been suspended.
+          </div>
+        )}
+
         {/* Join CTA */}
         <div className="flex items-center justify-between">
           <JoinButton
@@ -80,13 +90,16 @@ export default async function CommunityPage({ params }: Props) {
             requestStatus={requestStatus}
             isAuthenticated={!!session}
           />
-          {isMember && (
-            <a
-              href={`/communities/${slug}/manage`}
-              className="text-sm text-muted-foreground hover:text-foreground"
-            >
-              Manage &rarr;
-            </a>
+          {isMember && session && (
+            <div className="flex items-center gap-2">
+              <LeaveButton communitySlug={slug} userId={session.user.id} />
+              <a
+                href={`/communities/${slug}/manage`}
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                Manage &rarr;
+              </a>
+            </div>
           )}
         </div>
 
