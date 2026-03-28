@@ -14,10 +14,12 @@ export const PUBLIC_ROUTES = [
 export const PUBLIC_ROUTE_PREFIXES = [
   "/profile/",
   "/communities/",
+  "/invite/",
   "/api/auth/",
   "/api/profiles/",
   "/api/tags",
   "/api/communities",
+  "/api/invites/",
 ];
 
 export function isPublicRoute(pathname: string): boolean {

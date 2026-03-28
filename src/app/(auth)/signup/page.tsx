@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,7 +20,17 @@ import { Separator } from "@/components/ui/separator";
 type FormState = "idle" | "loading" | "magic-link-sent";
 
 export default function SignupPage() {
+  return (
+    <Suspense>
+      <SignupForm />
+    </Suspense>
+  );
+}
+
+function SignupForm() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const inviteToken = searchParams.get("invite");
   const [formState, setFormState] = useState<FormState>("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -45,7 +55,7 @@ export default function SignupPage() {
       return;
     }
 
-    router.push("/");
+    router.push(inviteToken ? `/invite/${inviteToken}` : "/");
   }
 
   async function handleMagicLink() {
@@ -58,7 +68,7 @@ export default function SignupPage() {
 
     const { error } = await authClient.signIn.magicLink({
       email,
-      callbackURL: "/",
+      callbackURL: inviteToken ? `/invite/${inviteToken}` : "/",
     });
 
     if (error) {
@@ -162,7 +172,7 @@ export default function SignupPage() {
       <CardFooter className="justify-center">
         <p className="text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href="/login" className="text-primary hover:underline">
+          <Link href={inviteToken ? `/login?invite=${inviteToken}` : "/login"} className="text-primary hover:underline">
             Log in
           </Link>
         </p>

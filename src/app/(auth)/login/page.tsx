@@ -30,7 +30,10 @@ export default function LoginPage() {
 function LoginForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get("redirect") ?? "/feed";
+  const inviteToken = searchParams.get("invite");
+  const redirectTo = inviteToken
+    ? `/invite/${inviteToken}`
+    : searchParams.get("redirect") ?? "/feed";
   const [formState, setFormState] = useState<FormState>("idle");
   const [error, setError] = useState<string | null>(null);
 
@@ -167,7 +170,7 @@ function LoginForm() {
       <CardFooter className="justify-center">
         <p className="text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <Link href="/signup" className="text-primary hover:underline">
+          <Link href={inviteToken ? `/signup?invite=${inviteToken}` : "/signup"} className="text-primary hover:underline">
             Sign up
           </Link>
         </p>

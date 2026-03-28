@@ -194,6 +194,28 @@ export const community = pgTable(
   ],
 );
 
+// ── Invites ─────────────────────────────────────────────────────────
+
+export const invite = pgTable(
+  "invite",
+  {
+    id: text("id").primaryKey(),
+    token: text("token").notNull().unique(),
+    communityId: text("community_id")
+      .notNull()
+      .references(() => community.id, { onDelete: "cascade" }),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    revokedAt: timestamp("revoked_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("invite_token_idx").on(table.token),
+    index("invite_community_id_idx").on(table.communityId),
+  ],
+);
+
 // ── Membership ──────────────────────────────────────────────────────
 
 export const membership = pgTable(

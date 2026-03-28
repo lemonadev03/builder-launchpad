@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Users, Settings, Layers, Shield } from "lucide-react";
+import { Users, Settings, Layers, Shield, LinkIcon } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { getCommunityBySlug } from "@/lib/queries/community";
 import { getMemberCount, getPendingRequestCount } from "@/lib/queries/membership";
@@ -43,6 +43,13 @@ export default async function CommunityDashboardPage({ params }: Props) {
       icon: Users,
       label: "Members",
       description: "Manage roles and membership",
+      enabled: true,
+    },
+    {
+      href: `/communities/${slug}/manage/invites`,
+      icon: LinkIcon,
+      label: "Invites",
+      description: "Generate and manage invite links",
       enabled: true,
     },
     {
