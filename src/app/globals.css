@@ -41,7 +41,7 @@
 
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
+  --font-sans: var(--font-instrument-sans);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -195,5 +195,10 @@
   }
   html {
     @apply font-sans;
+  }
+
+  /* Linear-inspired smooth defaults */
+  button, a, input, textarea, select {
+    transition-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
