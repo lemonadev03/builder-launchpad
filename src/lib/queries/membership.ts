@@ -1,6 +1,7 @@
-import { and, eq, count, gt } from "drizzle-orm";
+import { and, eq, count } from "drizzle-orm";
 import { db } from "@/db";
 import { membership, profile, community } from "@/db/schema";
+import { cascadeLeaveDescendants } from "@/lib/queries/membership-inheritance";
 
 const REJOIN_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -52,10 +53,26 @@ export async function updateMemberRole(
 }
 
 export async function removeMember(membershipId: string) {
+  // Get the membership first to know userId and communityId for cascade
+  const [mem] = await db
+    .select({
+      id: membership.id,
+      userId: membership.userId,
+      communityId: membership.communityId,
+    })
+    .from(membership)
+    .where(eq(membership.id, membershipId))
+    .limit(1);
+
+  if (!mem) return null;
+
   const rows = await db
     .delete(membership)
     .where(eq(membership.id, membershipId))
     .returning();
+
+  // Cascade-remove from all descendants
+  await cascadeLeaveDescendants(mem.userId, mem.communityId);
 
   return rows[0] ?? null;
 }
@@ -140,8 +157,11 @@ export async function leaveCommunity(userId: string, communityId: string) {
     if (adminCount <= 1) return { error: "last_admin" as const };
   }
 
-  // Soft-delete: set leftAt and remove
+  // Remove from this community
   await db.delete(membership).where(eq(membership.id, mem.id));
+
+  // Cascade-remove from all descendants
+  await cascadeLeaveDescendants(userId, communityId);
 
   return { error: null };
 }

@@ -1,6 +1,7 @@
 import { and, eq, isNull, count } from "drizzle-orm";
 import { db } from "@/db";
 import { invite, community, membership } from "@/db/schema";
+import { joinAncestors } from "@/lib/queries/membership-inheritance";
 
 function generateToken(): string {
   const bytes = new Uint8Array(12);
@@ -142,6 +143,9 @@ export async function redeemInvite(token: string, userId: string) {
     role: "member",
     status: "active",
   });
+
+  // Auto-join ancestor communities
+  await joinAncestors(userId, inv.communityId);
 
   if (inv.email) {
     await db

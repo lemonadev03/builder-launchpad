@@ -6,6 +6,7 @@ import { requireApiAuth } from "@/lib/api-auth";
 import { getCommunityBySlug } from "@/lib/queries/community";
 import { getMembersByCommunity } from "@/lib/queries/membership";
 import { requireCommunityPermission } from "@/lib/permissions";
+import { joinAncestors } from "@/lib/queries/membership-inheritance";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -85,6 +86,9 @@ export async function POST(request: Request, { params }: Props) {
       status: "active",
     })
     .returning();
+
+  // Auto-join ancestor communities
+  await joinAncestors(session.user.id, c.id);
 
   return NextResponse.json({ membership: created }, { status: 201 });
 }

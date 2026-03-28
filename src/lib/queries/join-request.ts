@@ -1,6 +1,7 @@
 import { and, eq, count } from "drizzle-orm";
 import { db } from "@/db";
 import { joinRequest, membership, profile } from "@/db/schema";
+import { joinAncestors } from "@/lib/queries/membership-inheritance";
 
 export async function createJoinRequest(userId: string, communityId: string) {
   // Check for existing pending request
@@ -105,6 +106,9 @@ export async function approveJoinRequest(
     role: "member",
     status: "active",
   });
+
+  // Auto-join ancestor communities
+  await joinAncestors(req.userId, req.communityId);
 
   // Update request status
   const [updated] = await db
