@@ -1,6 +1,7 @@
 import {
   boolean,
   index,
+  integer,
   jsonb,
   pgTable,
   primaryKey,
@@ -176,6 +177,7 @@ export const community = pgTable(
       .notNull(),
     // Self-referencing parent — FK added manually in migration (Drizzle self-ref limitation)
     parentId: text("parent_id"),
+    depth: integer("depth").default(0).notNull(),
     subTierLabel: text("sub_tier_label"),
     createdBy: text("created_by")
       .notNull()
