@@ -3,6 +3,8 @@ import { requireApiAuth } from "@/lib/api-auth";
 import { checkCommunityCreateRateLimit } from "@/lib/rate-limit";
 import { createCommunitySchema } from "@/lib/validations/community";
 import { createCommunity, checkSlugAvailable } from "@/lib/queries/community";
+import { validateSubCommunityCreation } from "@/lib/queries/community-tree";
+import { requireCommunityPermission } from "@/lib/permissions";
 
 export async function POST(request: Request) {
   const { session, response } = await requireApiAuth(request);
@@ -31,6 +33,30 @@ export async function POST(request: Request) {
     );
   }
 
+  let parentDepth: number | undefined;
+
+  // If creating a sub-community, validate parent
+  if (parsed.data.parentId) {
+    // Must be admin of parent community
+    const forbidden = await requireCommunityPermission(
+      session.user.id,
+      parsed.data.parentId,
+      "community.edit",
+    );
+    if (forbidden) return forbidden;
+
+    const validation = await validateSubCommunityCreation(
+      parsed.data.parentId,
+    );
+    if (!validation.allowed) {
+      return NextResponse.json(
+        { error: validation.error },
+        { status: 400 },
+      );
+    }
+    parentDepth = validation.parentDepth;
+  }
+
   if (parsed.data.slug) {
     const available = await checkSlugAvailable(parsed.data.slug);
     if (!available) {
@@ -42,7 +68,11 @@ export async function POST(request: Request) {
   }
 
   try {
-    const created = await createCommunity(session.user.id, parsed.data);
+    const created = await createCommunity(
+      session.user.id,
+      parsed.data,
+      parentDepth,
+    );
     return NextResponse.json({ community: created }, { status: 201 });
   } catch (err) {
     if (

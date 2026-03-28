@@ -64,6 +64,7 @@ export const createCommunitySchema = z.object({
     .max(100, "Location must be at most 100 characters")
     .optional()
     .or(z.literal("")),
+  parentId: z.string().optional(),
 });
 
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>;

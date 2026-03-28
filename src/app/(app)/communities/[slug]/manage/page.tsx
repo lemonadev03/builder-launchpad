@@ -54,11 +54,11 @@ export default async function CommunityDashboardPage({ params }: Props) {
       enabled: true,
     },
     {
-      href: "#",
+      href: `/communities/${slug}`,
       icon: Layers,
-      label: "Chapters",
-      description: "Sub-community management",
-      enabled: false,
+      label: community.subTierLabel || "Sub-communities",
+      description: "View and create sub-communities",
+      enabled: true,
     },
     {
       href: "#",

@@ -7,10 +7,12 @@ import type { CreateCommunityInput, UpdateCommunityInput } from "@/lib/validatio
 export async function createCommunity(
   userId: string,
   data: CreateCommunityInput,
+  parentDepth?: number,
 ) {
   const slug = data.slug || (await findAvailableSlug(data.name));
   const communityId = crypto.randomUUID();
   const membershipId = crypto.randomUUID();
+  const depth = data.parentId && parentDepth !== undefined ? parentDepth + 1 : 0;
 
   return db.transaction(async (tx) => {
     const [created] = await tx
@@ -22,6 +24,8 @@ export async function createCommunity(
         description: data.description || null,
         tagline: data.tagline || null,
         location: data.location || null,
+        parentId: data.parentId || null,
+        depth,
         createdBy: userId,
       })
       .returning();
