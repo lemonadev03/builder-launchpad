@@ -3,7 +3,8 @@ import Link from "next/link";
 import { Users, Settings, Layers, Shield, LinkIcon } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { getCommunityBySlug } from "@/lib/queries/community";
-import { getMemberCount, getPendingRequestCount } from "@/lib/queries/membership";
+import { getMemberCount } from "@/lib/queries/membership";
+import { getPendingJoinRequestCount } from "@/lib/queries/join-request";
 import { hasPermission } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 
@@ -27,7 +28,7 @@ export default async function CommunityDashboardPage({ params }: Props) {
 
   const [memberCount, pendingCount] = await Promise.all([
     getMemberCount(community.id),
-    getPendingRequestCount(community.id),
+    getPendingJoinRequestCount(community.id),
   ]);
 
   const links = [

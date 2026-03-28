@@ -218,6 +218,37 @@ export const invite = pgTable(
   ],
 );
 
+// ── Join Requests ───────────────────────────────────────────────────
+
+export const joinRequest = pgTable(
+  "join_request",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    communityId: text("community_id")
+      .notNull()
+      .references(() => community.id, { onDelete: "cascade" }),
+    status: text("status", { enum: ["pending", "approved", "rejected"] })
+      .default("pending")
+      .notNull(),
+    requestedAt: timestamp("requested_at").defaultNow().notNull(),
+    resolvedAt: timestamp("resolved_at"),
+    resolvedBy: text("resolved_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+  },
+  (table) => [
+    unique("join_request_user_community_uniq").on(
+      table.userId,
+      table.communityId,
+    ),
+    index("join_request_community_id_idx").on(table.communityId),
+    index("join_request_user_id_idx").on(table.userId),
+  ],
+);
+
 // ── Membership ──────────────────────────────────────────────────────
 
 export const membership = pgTable(

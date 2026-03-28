@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { label: "Settings", href: "/settings" },
   { label: "Members", href: "/members" },
   { label: "Invites", href: "/invites" },
+  { label: "Requests", href: "/requests" },
 ];
 
 export default async function CommunityManageLayout({

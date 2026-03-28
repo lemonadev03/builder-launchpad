@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { getCommunityBySlug } from "@/lib/queries/community";
 import { getMembership } from "@/lib/queries/membership";
+import { getUserJoinRequestStatus } from "@/lib/queries/join-request";
 import { getSession } from "@/lib/session";
 import { CommunityHeader } from "@/components/community-header";
 import { JoinButton } from "@/components/join-button";
@@ -46,11 +47,15 @@ export default async function CommunityPage({ params }: Props) {
     if (!mem || mem.status !== "active") notFound();
   }
 
-  // Check if current user is a member
+  // Check if current user is a member + join request status
   let isMember = false;
+  let requestStatus: string | null = null;
   if (session) {
     const mem = await getMembership(session.user.id, c.id);
     isMember = mem?.status === "active";
+    if (!isMember) {
+      requestStatus = await getUserJoinRequestStatus(session.user.id, c.id);
+    }
   }
 
   return (
@@ -71,6 +76,9 @@ export default async function CommunityPage({ params }: Props) {
           <JoinButton
             joinPolicy={c.joinPolicy as "invite_only" | "request_to_join" | "open"}
             isMember={isMember}
+            communitySlug={slug}
+            requestStatus={requestStatus}
+            isAuthenticated={!!session}
           />
           {isMember && (
             <a
