@@ -25,6 +25,7 @@ interface CommunityData {
   logoUrl: string | null;
   bannerUrl: string | null;
   primaryColor: string | null;
+  subTierLabel: string | null;
 }
 
 interface CommunitySettingsFormProps {
@@ -51,6 +52,9 @@ export function CommunitySettingsForm({
   const [joinPolicy, setJoinPolicy] = useState(community.joinPolicy);
   const [primaryColor, setPrimaryColor] = useState(
     community.primaryColor ?? "",
+  );
+  const [subTierLabel, setSubTierLabel] = useState(
+    community.subTierLabel ?? "",
   );
 
   // Slug availability check
@@ -102,6 +106,7 @@ export function CommunitySettingsForm({
           visibility,
           joinPolicy,
           primaryColor: primaryColor || undefined,
+          subTierLabel: subTierLabel || undefined,
         }),
       });
 
@@ -215,6 +220,20 @@ export function CommunitySettingsForm({
             maxLength={100}
             placeholder="City, Country"
           />
+        </div>
+
+        <div className="space-y-2">
+          <Label htmlFor="subTierLabel">Sub-tier Name</Label>
+          <Input
+            id="subTierLabel"
+            value={subTierLabel}
+            onChange={(e) => setSubTierLabel(e.target.value)}
+            maxLength={30}
+            placeholder="e.g. Regions, Chapters, Clubs"
+          />
+          <p className="text-xs text-muted-foreground">
+            What sub-communities under this community are called. Default: &quot;Sub-communities&quot;
+          </p>
         </div>
       </section>
 

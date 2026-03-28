@@ -69,6 +69,12 @@ export const createCommunitySchema = z.object({
 
 export type CreateCommunityInput = z.infer<typeof createCommunitySchema>;
 
+export const subTierLabelSchema = z
+  .string()
+  .max(30, "Sub-tier name must be at most 30 characters")
+  .optional()
+  .or(z.literal(""));
+
 export const updateCommunitySchema = z.object({
   name: communityNameSchema.optional(),
   slug: communitySlugSchema.optional(),
@@ -82,6 +88,7 @@ export const updateCommunitySchema = z.object({
   primaryColor: primaryColorSchema,
   visibility: visibilitySchema.optional(),
   joinPolicy: joinPolicySchema.optional(),
+  subTierLabel: subTierLabelSchema,
 });
 
 export type UpdateCommunityInput = z.infer<typeof updateCommunitySchema>;

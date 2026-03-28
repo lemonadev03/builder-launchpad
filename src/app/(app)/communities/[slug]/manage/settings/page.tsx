@@ -38,6 +38,7 @@ export default async function ManageSettingsPage({ params }: Props) {
           logoUrl: community.logoUrl,
           bannerUrl: community.bannerUrl,
           primaryColor: community.primaryColor,
+          subTierLabel: community.subTierLabel,
         }}
       />
     </div>
