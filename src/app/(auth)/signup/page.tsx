@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { authClient } from "@/lib/auth-client";
@@ -16,8 +16,15 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 type FormState = "idle" | "loading" | "magic-link-sent";
+
+interface InviteContext {
+  communityName: string;
+  communityLogoUrl: string | null;
+  communitySlug: string;
+}
 
 export default function SignupPage() {
   return (
@@ -33,10 +40,22 @@ function SignupForm() {
   const inviteToken = searchParams.get("invite");
   const [formState, setFormState] = useState<FormState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [inviteContext, setInviteContext] = useState<InviteContext | null>(null);
 
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+
+  // Fetch invite context if invite token present
+  useEffect(() => {
+    if (!inviteToken) return;
+    fetch(`/api/invites/${inviteToken}/info`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((data) => {
+        if (data) setInviteContext(data);
+      })
+      .catch(() => {});
+  }, [inviteToken]);
 
   async function handleSignup(e: React.FormEvent) {
     e.preventDefault();
@@ -102,10 +121,36 @@ function SignupForm() {
   return (
     <Card>
       <CardHeader className="text-center">
-        <CardTitle className="text-xl">Create your account</CardTitle>
-        <CardDescription>
-          Join Builder Launchpad to connect with communities
-        </CardDescription>
+        {inviteContext ? (
+          <>
+            <div className="mx-auto mb-3">
+              <Avatar className="h-12 w-12">
+                {inviteContext.communityLogoUrl ? (
+                  <AvatarImage
+                    src={inviteContext.communityLogoUrl}
+                    alt={inviteContext.communityName}
+                  />
+                ) : null}
+                <AvatarFallback>
+                  {inviteContext.communityName.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </div>
+            <CardTitle className="text-xl">
+              Join {inviteContext.communityName}
+            </CardTitle>
+            <CardDescription>
+              Create an account to accept your invitation
+            </CardDescription>
+          </>
+        ) : (
+          <>
+            <CardTitle className="text-xl">Create your account</CardTitle>
+            <CardDescription>
+              Join Builder Launchpad to connect with communities
+            </CardDescription>
+          </>
+        )}
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSignup} className="grid gap-4">
@@ -172,7 +217,10 @@ function SignupForm() {
       <CardFooter className="justify-center">
         <p className="text-sm text-muted-foreground">
           Already have an account?{" "}
-          <Link href={inviteToken ? `/login?invite=${inviteToken}` : "/login"} className="text-primary hover:underline">
+          <Link
+            href={inviteToken ? `/login?invite=${inviteToken}` : "/login"}
+            className="text-primary hover:underline"
+          >
             Log in
           </Link>
         </p>

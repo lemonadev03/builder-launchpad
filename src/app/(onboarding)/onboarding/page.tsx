@@ -3,8 +3,13 @@ import { requireSession } from "@/lib/session";
 import { getProfileByUserId } from "@/lib/queries/profile";
 import { OnboardingWizard } from "@/components/onboarding-wizard";
 
-export default async function OnboardingPage() {
+interface Props {
+  searchParams: Promise<{ community?: string }>;
+}
+
+export default async function OnboardingPage({ searchParams }: Props) {
   const session = await requireSession();
+  const { community: communitySlug } = await searchParams;
   const profile = await getProfileByUserId(session.user.id);
 
   if (!profile) {
@@ -13,7 +18,7 @@ export default async function OnboardingPage() {
 
   // Already completed onboarding
   if (profile.onboardingCompletedAt) {
-    redirect("/feed");
+    redirect(communitySlug ? `/communities/${communitySlug}` : "/feed");
   }
 
   return (
@@ -23,6 +28,7 @@ export default async function OnboardingPage() {
         username: profile.username,
         avatarUrl: profile.avatarUrl,
       }}
+      redirectTo={communitySlug ? `/communities/${communitySlug}` : "/feed"}
     />
   );
 }

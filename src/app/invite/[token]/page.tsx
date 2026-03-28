@@ -107,7 +107,7 @@ export default async function InvitePage({ params }: Props) {
     // Check if onboarding is needed
     const profile = await getProfileByUserId(session.user.id);
     if (profile && !profile.onboardingCompletedAt) {
-      redirect("/onboarding");
+      redirect(`/onboarding?community=${comm.slug}`);
     }
 
     // Redirect to the community

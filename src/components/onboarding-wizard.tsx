@@ -19,6 +19,7 @@ interface ProfileData {
 
 interface OnboardingWizardProps {
   profile: ProfileData;
+  redirectTo?: string;
 }
 
 const SOCIAL_LABELS: Record<string, string> = {
@@ -30,7 +31,10 @@ const SOCIAL_LABELS: Record<string, string> = {
   email: "Email",
 };
 
-export function OnboardingWizard({ profile }: OnboardingWizardProps) {
+export function OnboardingWizard({
+  profile,
+  redirectTo = "/feed",
+}: OnboardingWizardProps) {
   const router = useRouter();
   const [step, setStep] = useState(1);
   const [saving, setSaving] = useState(false);
@@ -113,7 +117,7 @@ export function OnboardingWizard({ profile }: OnboardingWizardProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ onboardingCompletedAt: true }),
         });
-        router.push("/feed");
+        router.push(redirectTo);
       } else if (step === 1) {
         setStep(2);
       }
@@ -135,7 +139,7 @@ export function OnboardingWizard({ profile }: OnboardingWizardProps) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ onboardingCompletedAt: true }),
       }).catch(() => {});
-      router.push("/feed");
+      router.push(redirectTo);
     }
   }
 
