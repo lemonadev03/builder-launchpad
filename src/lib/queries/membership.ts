@@ -1,6 +1,6 @@
 import { and, eq, count, gt } from "drizzle-orm";
 import { db } from "@/db";
-import { membership, profile } from "@/db/schema";
+import { membership, profile, community } from "@/db/schema";
 
 const REJOIN_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
 
@@ -164,8 +164,12 @@ export async function getUserCommunities(userId: string) {
       role: membership.role,
       status: membership.status,
       joinedAt: membership.joinedAt,
+      communityName: community.name,
+      communitySlug: community.slug,
+      communityLogoUrl: community.logoUrl,
     })
     .from(membership)
+    .innerJoin(community, eq(membership.communityId, community.id))
     .where(
       and(eq(membership.userId, userId), eq(membership.status, "active")),
     )

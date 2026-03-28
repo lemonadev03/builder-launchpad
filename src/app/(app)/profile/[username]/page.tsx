@@ -1,10 +1,14 @@
 import { notFound } from "next/navigation";
+import Link from "next/link";
 import type { Metadata } from "next";
 import { GraduationCap } from "lucide-react";
 import { getProfileByUsername } from "@/lib/queries/profile";
+import { getUserCommunities } from "@/lib/queries/membership";
 import { ProfileHeader } from "@/components/profile-header";
 import { ProfileTags } from "@/components/profile-tags";
 import { SocialLinks } from "@/components/social-links";
+import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import type { SocialLinks as SocialLinksType } from "@/db/schema";
 
 interface Props {
@@ -44,6 +48,7 @@ export default async function ProfilePage({ params }: Props) {
   const hasSocialLinks = Object.values(socialLinks).some(
     (v) => v && v.trim() !== "",
   );
+  const communities = await getUserCommunities(p.userId);
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -108,14 +113,43 @@ export default async function ProfilePage({ params }: Props) {
           </section>
         )}
 
-        {/* Community memberships placeholder */}
+        {/* Community memberships */}
         <section>
           <h2 className="mb-1.5 text-xs font-medium uppercase tracking-wider text-muted-foreground">
             Communities
           </h2>
-          <p className="text-sm text-muted-foreground">
-            No community memberships yet.
-          </p>
+          {communities.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              No community memberships yet.
+            </p>
+          ) : (
+            <div className="space-y-2">
+              {communities.map((c) => (
+                <Link
+                  key={c.communityId}
+                  href={`/communities/${c.communitySlug}`}
+                  className="flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors hover:bg-muted/50"
+                >
+                  <Avatar className="h-8 w-8">
+                    {c.communityLogoUrl ? (
+                      <AvatarImage src={c.communityLogoUrl} alt={c.communityName} />
+                    ) : null}
+                    <AvatarFallback className="text-xs">
+                      {c.communityName.slice(0, 2).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="flex-1 truncate text-sm font-medium">
+                    {c.communityName}
+                  </span>
+                  {c.role !== "member" && (
+                    <Badge variant="outline" className="text-xs capitalize">
+                      {c.role}
+                    </Badge>
+                  )}
+                </Link>
+              ))}
+            </div>
+          )}
         </section>
 
         {/* Blog posts placeholder */}
