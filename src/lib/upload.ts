@@ -68,3 +68,21 @@ export function generateCommunityS3Key(
 ): string {
   return `communities/${communityId}/${type}-${Date.now()}.jpg`;
 }
+
+// ── Post inline images ─────────────────────────────────────────────
+
+export const MAX_POST_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB
+
+export async function processPostImage(buffer: Buffer): Promise<Buffer> {
+  return sharp(buffer)
+    .resize(1200, undefined, { fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 85 })
+    .toBuffer();
+}
+
+export function generatePostImageS3Key(
+  communityId: string,
+  userId: string,
+): string {
+  return `posts/${communityId}/${userId}/${Date.now()}.jpg`;
+}

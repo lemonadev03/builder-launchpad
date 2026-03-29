@@ -75,3 +75,21 @@ export const checkEmailInviteRateLimit = createRateLimiter(
 
 // 30 invite info lookups per IP per minute (anti-enumeration)
 export const checkInviteInfoRateLimit = createRateLimiter(30, 60 * 1000);
+
+// 20 post image uploads per user per hour
+export const checkPostImageUploadRateLimit = createRateLimiter(
+  20,
+  60 * 60 * 1000,
+);
+
+// 10 post creations per user per day
+export const checkPostCreateRateLimit = createRateLimiter(
+  10,
+  24 * 60 * 60 * 1000,
+);
+
+// 30 post updates per user per hour
+export const checkPostUpdateRateLimit = createRateLimiter(
+  30,
+  60 * 60 * 1000,
+);
