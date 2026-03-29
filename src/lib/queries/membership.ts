@@ -1,4 +1,4 @@
-import { and, eq, count, inArray } from "drizzle-orm";
+import { and, eq, count, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { membership, profile, community } from "@/db/schema";
 import { cascadeLeaveDescendants } from "@/lib/queries/membership-inheritance";
@@ -118,6 +118,16 @@ export async function getAdminCount(communityId: string) {
     );
 
   return result.count;
+}
+
+export async function warnMember(membershipId: string) {
+  const [updated] = await db
+    .update(membership)
+    .set({ warningCount: sql`${membership.warningCount} + 1` })
+    .where(eq(membership.id, membershipId))
+    .returning();
+
+  return updated ?? null;
 }
 
 export async function suspendMember(membershipId: string) {

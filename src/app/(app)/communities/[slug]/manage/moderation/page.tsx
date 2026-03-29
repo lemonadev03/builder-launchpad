@@ -15,6 +15,7 @@ import { getSuspendedMembers } from "@/lib/queries/membership";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { ModerationActions } from "@/components/moderation-actions";
+import { MemberModActions } from "@/components/member-mod-actions";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -296,9 +297,11 @@ export default async function ModerationPage({ params, searchParams }: Props) {
                     </p>
                   </div>
                 </div>
-                <Badge variant="destructive" className="text-xs">
-                  Suspended
-                </Badge>
+                <MemberModActions
+                  communitySlug={slug}
+                  userId={m.userId}
+                  status="suspended"
+                />
               </div>
             ))}
           </div>

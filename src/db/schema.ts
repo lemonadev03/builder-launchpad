@@ -269,6 +269,7 @@ export const membership = pgTable(
     status: text("status", { enum: ["active", "pending", "suspended"] })
       .default("active")
       .notNull(),
+    warningCount: integer("warning_count").default(0).notNull(),
     joinedAt: timestamp("joined_at").defaultNow().notNull(),
     leftAt: timestamp("left_at"),
     updatedAt: timestamp("updated_at")

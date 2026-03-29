@@ -12,6 +12,7 @@ import {
   leaveCommunity,
 } from "@/lib/queries/membership";
 import { requireCommunityPermission } from "@/lib/permissions";
+import { logModerationAction } from "@/lib/queries/moderation";
 
 interface Props {
   params: Promise<{ slug: string; userId: string }>;
@@ -82,6 +83,14 @@ export async function PUT(request: Request, { params }: Props) {
         );
       }
       const updated = await suspendMember(mem.id);
+      await logModerationAction({
+        action: "suspend_member",
+        moderatorId: session.user.id,
+        targetType: "member",
+        targetId: mem.id,
+        targetUserId,
+        communityId: c.id,
+      });
       return NextResponse.json({ membership: updated });
     }
 
@@ -93,6 +102,14 @@ export async function PUT(request: Request, { params }: Props) {
       );
     }
     const updated = await unsuspendMember(mem.id);
+    await logModerationAction({
+      action: "unsuspend_member",
+      moderatorId: session.user.id,
+      targetType: "member",
+      targetId: mem.id,
+      targetUserId,
+      communityId: c.id,
+    });
     return NextResponse.json({ membership: updated });
   }
 
@@ -197,5 +214,13 @@ export async function DELETE(request: Request, { params }: Props) {
   }
 
   const removed = await removeMember(mem.id);
+  await logModerationAction({
+    action: "remove_member",
+    moderatorId: session.user.id,
+    targetType: "member",
+    targetId: mem.id,
+    targetUserId,
+    communityId: c.id,
+  });
   return NextResponse.json({ membership: removed });
 }
