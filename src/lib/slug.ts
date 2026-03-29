@@ -1,6 +1,6 @@
-import { eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { community } from "@/db/schema";
+import { community, post } from "@/db/schema";
 
 export function generateSlug(name: string): string {
   return (
@@ -32,6 +32,48 @@ export async function findAvailableSlug(baseName: string): Promise<string> {
       .select({ slug: community.slug })
       .from(community)
       .where(eq(community.slug, withSuffix))
+      .limit(1);
+
+    if (exists.length === 0) return withSuffix;
+  }
+
+  return `${candidate.slice(0, 50)}-${Date.now().toString(36).slice(-8)}`;
+}
+
+export async function findAvailablePostSlug(
+  baseName: string,
+  communityId: string,
+): Promise<string> {
+  const candidate = generateSlug(baseName);
+
+  const existing = await db
+    .select({ slug: post.slug })
+    .from(post)
+    .where(
+      and(
+        eq(post.slug, candidate),
+        eq(post.communityId, communityId),
+        isNull(post.archivedAt),
+      ),
+    )
+    .limit(1);
+
+  if (existing.length === 0) return candidate;
+
+  for (let i = 0; i < 10; i++) {
+    const suffix = Math.floor(1000 + Math.random() * 9000).toString();
+    const withSuffix = `${candidate.slice(0, 55)}-${suffix}`;
+
+    const exists = await db
+      .select({ slug: post.slug })
+      .from(post)
+      .where(
+        and(
+          eq(post.slug, withSuffix),
+          eq(post.communityId, communityId),
+          isNull(post.archivedAt),
+        ),
+      )
       .limit(1);
 
     if (exists.length === 0) return withSuffix;

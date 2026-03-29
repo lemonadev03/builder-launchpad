@@ -282,3 +282,38 @@ export const membership = pgTable(
     index("membership_community_id_idx").on(table.communityId),
   ],
 );
+
+// ── Blog Posts ──────────────────────────────────────────────────────
+
+export const post = pgTable(
+  "post",
+  {
+    id: text("id").primaryKey(),
+    title: text("title").notNull(),
+    slug: text("slug").notNull(),
+    content: jsonb("content").notNull(),
+    excerpt: text("excerpt"),
+    communityId: text("community_id")
+      .notNull()
+      .references(() => community.id, { onDelete: "cascade" }),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    status: text("status", { enum: ["draft", "published"] })
+      .default("draft")
+      .notNull(),
+    publishedAt: timestamp("published_at"),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    archivedAt: timestamp("archived_at"),
+  },
+  (table) => [
+    index("post_community_id_idx").on(table.communityId),
+    index("post_author_id_idx").on(table.authorId),
+    index("post_slug_community_idx").on(table.slug, table.communityId),
+    index("post_status_idx").on(table.status),
+  ],
+);

@@ -15,6 +15,13 @@
       "when": 1774648813961,
       "tag": "0001_motionless_warlock",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1774744077011,
+      "tag": "0002_faithful_living_lightning",
+      "breakpoints": true
     }
   ]
 }
