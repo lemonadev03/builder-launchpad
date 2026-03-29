@@ -375,6 +375,46 @@ export const reaction = pgTable(
   ],
 );
 
+// ── Flags (content reporting) ──────────────────────────────────────
+
+export const flag = pgTable(
+  "flag",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    targetType: text("target_type", { enum: ["post", "comment"] }).notNull(),
+    targetId: text("target_id").notNull(),
+    reason: text("reason", {
+      enum: ["spam", "harassment", "off_topic", "other"],
+    }).notNull(),
+    description: text("description"),
+    status: text("status", { enum: ["open", "resolved", "dismissed"] })
+      .default("open")
+      .notNull(),
+    communityId: text("community_id")
+      .notNull()
+      .references(() => community.id, { onDelete: "cascade" }),
+    resolvedAt: timestamp("resolved_at"),
+    resolvedBy: text("resolved_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    unique("flag_user_target_uniq").on(
+      table.userId,
+      table.targetType,
+      table.targetId,
+    ),
+    index("flag_target_idx").on(table.targetType, table.targetId),
+    index("flag_community_id_idx").on(table.communityId),
+    index("flag_status_idx").on(table.status),
+    index("flag_user_id_idx").on(table.userId),
+  ],
+);
+
 // ── Bookmarks ──────────────────────────────────────────────────────
 
 export const bookmark = pgTable(

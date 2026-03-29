@@ -102,3 +102,6 @@ export const checkCommentCreateRateLimit = createRateLimiter(
 
 // 60 reactions per user per hour
 export const checkReactionRateLimit = createRateLimiter(60, 60 * 60 * 1000);
+
+// 20 flags per user per day
+export const checkFlagRateLimit = createRateLimiter(20, 24 * 60 * 60 * 1000);

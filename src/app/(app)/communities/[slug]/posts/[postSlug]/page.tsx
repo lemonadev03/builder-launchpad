@@ -13,6 +13,10 @@ import {
 } from "@/lib/queries/reaction";
 import { isBookmarked } from "@/lib/queries/bookmark";
 import {
+  hasUserFlagged,
+  getUserFlaggedTargets,
+} from "@/lib/queries/flag";
+import {
   getCommentsByPost,
   getAuthorRolesBatch,
 } from "@/lib/queries/comment";
@@ -22,6 +26,7 @@ import { PostAuthorCard } from "@/components/post-author-card";
 import { ShareUrl } from "@/components/share-url";
 import { ReactionBar } from "@/components/reaction-bar";
 import { BookmarkButton } from "@/components/bookmark-button";
+import { FlagButton } from "@/components/flag-button";
 import { CommentSection } from "@/components/comment-section";
 import { RichTextRenderer } from "@/components/editor/rich-text-renderer";
 import { Badge } from "@/components/ui/badge";
@@ -75,7 +80,7 @@ export default async function PostPage({ params }: Props) {
     if (!session || session.user.id !== p.authorId) notFound();
   }
 
-  const [ancestors, reactionCounts, userReactions, bookmarkedState] =
+  const [ancestors, reactionCounts, userReactions, bookmarkedState, postFlagged] =
     await Promise.all([
       c.parentId ? getAncestorChain(c.id) : Promise.resolve([]),
       getReactionCounts("post", p.id),
@@ -84,6 +89,9 @@ export default async function PostPage({ params }: Props) {
         : Promise.resolve([]),
       session
         ? isBookmarked(session.user.id, "post", p.id)
+        : Promise.resolve(false),
+      session
+        ? hasUserFlagged(session.user.id, "post", p.id)
         : Promise.resolve(false),
     ]);
 
@@ -104,7 +112,7 @@ export default async function PostPage({ params }: Props) {
     ),
   ];
 
-  const [commentReactionMap, commentUserReactionMap, authorRolesMap, isModerator] =
+  const [commentReactionMap, commentUserReactionMap, authorRolesMap, isModerator, userFlaggedComments] =
     await Promise.all([
       getReactionCountsBatch("comment", allCommentIds),
       session
@@ -123,6 +131,9 @@ export default async function PostPage({ params }: Props) {
       session
         ? hasPermission(session.user.id, c.id, "comment.delete")
         : Promise.resolve(false),
+      session
+        ? getUserFlaggedTargets(session.user.id, "comment", allCommentIds)
+        : Promise.resolve(new Set<string>()),
     ]);
 
   type BaseComment = {
@@ -155,6 +166,7 @@ export default async function PostPage({ params }: Props) {
       authorRole: authorRolesMap.get(cm.authorId) ?? null,
       reactionCounts: commentReactionMap.get(cm.id) ?? {},
       userReactions: commentUserReactionMap.get(cm.id) ?? [],
+      flagged: userFlaggedComments.has(cm.id),
     };
   }
 
@@ -272,7 +284,7 @@ export default async function PostPage({ params }: Props) {
         <ShareUrl url={postUrl} />
       </section>
 
-      {/* Reactions + bookmark */}
+      {/* Reactions + bookmark + flag */}
       <section className="mb-8 flex items-center justify-between">
         <ReactionBar
           targetType="post"
@@ -280,11 +292,20 @@ export default async function PostPage({ params }: Props) {
           counts={reactionCounts}
           userReactions={userReactions}
         />
-        <BookmarkButton
-          targetType="post"
-          targetId={p.id}
-          bookmarked={bookmarkedState}
-        />
+        <div className="flex items-center gap-1">
+          <BookmarkButton
+            targetType="post"
+            targetId={p.id}
+            bookmarked={bookmarkedState}
+          />
+          {session && session.user.id !== p.authorId && (
+            <FlagButton
+              targetType="post"
+              targetId={p.id}
+              flagged={postFlagged}
+            />
+          )}
+        </div>
       </section>
 
       {/* Comments */}

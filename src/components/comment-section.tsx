@@ -15,6 +15,7 @@ import { Button } from "@/components/ui/button";
 import { CommentEditor } from "@/components/comment-editor";
 import { CommentRenderer } from "@/components/comment-renderer";
 import { ReactionBar } from "@/components/reaction-bar";
+import { FlagButton } from "@/components/flag-button";
 import type { TiptapContent } from "@/lib/tiptap";
 
 interface CommentData {
@@ -32,6 +33,7 @@ interface CommentData {
   authorRole?: string | null;
   reactionCounts?: Record<string, number>;
   userReactions?: string[];
+  flagged?: boolean;
   replies?: CommentData[];
   replyCount?: number;
 }
@@ -379,34 +381,39 @@ function CommentItem({
             compact
           />
 
-          {(canEdit || canDelete) && (
-            <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/item:opacity-100">
-              {canEdit && (
-                <button
-                  onClick={onEdit}
-                  className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
-                  title="Edit"
-                >
-                  <Pencil className="h-3 w-3" />
-                </button>
-              )}
-              {canDelete && (
-                <button
-                  onClick={async () => {
-                    if (!window.confirm("Delete this comment?")) return;
-                    setDeleting(true);
-                    await onDelete();
-                    setDeleting(false);
-                  }}
-                  disabled={deleting}
-                  className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
-                  title="Delete"
-                >
-                  <Trash2 className="h-3 w-3" />
-                </button>
-              )}
-            </div>
-          )}
+          <div className="flex items-center gap-1 opacity-0 transition-opacity group-hover/item:opacity-100">
+            {canEdit && (
+              <button
+                onClick={onEdit}
+                className="rounded p-1 text-muted-foreground hover:bg-muted hover:text-foreground"
+                title="Edit"
+              >
+                <Pencil className="h-3 w-3" />
+              </button>
+            )}
+            {canDelete && (
+              <button
+                onClick={async () => {
+                  if (!window.confirm("Delete this comment?")) return;
+                  setDeleting(true);
+                  await onDelete();
+                  setDeleting(false);
+                }}
+                disabled={deleting}
+                className="rounded p-1 text-muted-foreground hover:bg-destructive/10 hover:text-destructive"
+                title="Delete"
+              >
+                <Trash2 className="h-3 w-3" />
+              </button>
+            )}
+            {currentUserId && !isAuthor && (
+              <FlagButton
+                targetType="comment"
+                targetId={comment.id}
+                flagged={comment.flagged}
+              />
+            )}
+          </div>
         </div>
       )}
     </div>
