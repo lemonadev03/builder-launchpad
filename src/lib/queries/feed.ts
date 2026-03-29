@@ -25,6 +25,7 @@ export async function getPersonalFeed(
     sql`${post.communityId} IN (${userCommunityIds})`,
     eq(post.status, "published"),
     isNull(post.archivedAt),
+    isNull(post.hiddenAt),
   ];
 
   // Optional community filter

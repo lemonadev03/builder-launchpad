@@ -50,6 +50,7 @@ export async function getPostBySlug(communitySlug: string, postSlug: string) {
       authorDisplayName: profile.displayName,
       authorUsername: profile.username,
       authorAvatarUrl: profile.avatarUrl,
+      hiddenAt: post.hiddenAt,
     })
     .from(post)
     .innerJoin(community, eq(post.communityId, community.id))
@@ -162,6 +163,7 @@ export async function getPublishedPostsByCommunity(
     eq(post.communityId, communityId),
     eq(post.status, "published"),
     isNull(post.archivedAt),
+    isNull(post.hiddenAt),
   ];
 
   if (opts.tag) {
@@ -207,6 +209,7 @@ export async function getTagsByCommunity(communityId: string) {
         WHERE ${post.communityId} = ${communityId}
           AND ${post.status} = 'published'
           AND ${post.archivedAt} IS NULL
+          AND ${post.hiddenAt} IS NULL
         GROUP BY t.tag
         ORDER BY count DESC`,
   );
@@ -237,6 +240,7 @@ export async function getRecentPostsByCommunity(
         eq(post.communityId, communityId),
         eq(post.status, "published"),
         isNull(post.archivedAt),
+        isNull(post.hiddenAt),
       ),
     )
     .orderBy(desc(post.publishedAt))

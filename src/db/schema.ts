@@ -310,6 +310,10 @@ export const post = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
     archivedAt: timestamp("archived_at"),
+    hiddenAt: timestamp("hidden_at"),
+    hiddenBy: text("hidden_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
   },
   (table) => [
     index("post_community_id_idx").on(table.communityId),
@@ -339,6 +343,10 @@ export const comment = pgTable(
       .$onUpdate(() => new Date())
       .notNull(),
     deletedAt: timestamp("deleted_at"),
+    hiddenAt: timestamp("hidden_at"),
+    hiddenBy: text("hidden_by").references(() => user.id, {
+      onDelete: "set null",
+    }),
   },
   (table) => [
     index("comment_post_id_idx").on(table.postId),
@@ -412,6 +420,51 @@ export const flag = pgTable(
     index("flag_community_id_idx").on(table.communityId),
     index("flag_status_idx").on(table.status),
     index("flag_user_id_idx").on(table.userId),
+  ],
+);
+
+// ── Moderation Actions (audit log) ─────────────────────────────────
+
+export const moderationAction = pgTable(
+  "moderation_action",
+  {
+    id: text("id").primaryKey(),
+    action: text("action", {
+      enum: [
+        "hide_post",
+        "unhide_post",
+        "delete_post",
+        "hide_comment",
+        "unhide_comment",
+        "delete_comment",
+        "dismiss_flags",
+        "warn_member",
+        "suspend_member",
+        "unsuspend_member",
+        "remove_member",
+      ],
+    }).notNull(),
+    moderatorId: text("moderator_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    targetType: text("target_type", {
+      enum: ["post", "comment", "member"],
+    }).notNull(),
+    targetId: text("target_id").notNull(),
+    targetUserId: text("target_user_id").references(() => user.id, {
+      onDelete: "set null",
+    }),
+    reason: text("reason"),
+    communityId: text("community_id")
+      .notNull()
+      .references(() => community.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("mod_action_community_id_idx").on(table.communityId),
+    index("mod_action_moderator_id_idx").on(table.moderatorId),
+    index("mod_action_target_idx").on(table.targetType, table.targetId),
+    index("mod_action_created_at_idx").on(table.createdAt),
   ],
 );
 

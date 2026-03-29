@@ -80,6 +80,18 @@ export default async function PostPage({ params }: Props) {
     if (!session || session.user.id !== p.authorId) notFound();
   }
 
+  // Hidden posts only visible to mods/admins
+  const isHidden = !!p.hiddenAt;
+  if (isHidden) {
+    if (!session) notFound();
+    const canModerate = await hasPermission(
+      session.user.id,
+      c.id,
+      "content.moderate",
+    );
+    if (!canModerate) notFound();
+  }
+
   const [ancestors, reactionCounts, userReactions, bookmarkedState, postFlagged] =
     await Promise.all([
       c.parentId ? getAncestorChain(c.id) : Promise.resolve([]),
@@ -145,6 +157,7 @@ export default async function PostPage({ params }: Props) {
     createdAt: Date;
     updatedAt: Date;
     deletedAt: Date | null;
+    hiddenAt: Date | null;
     authorDisplayName: string;
     authorUsername: string;
     authorAvatarUrl: string | null;
@@ -160,6 +173,7 @@ export default async function PostPage({ params }: Props) {
       createdAt: cm.createdAt.toISOString(),
       updatedAt: cm.updatedAt.toISOString(),
       deletedAt: cm.deletedAt?.toISOString() ?? null,
+      hiddenAt: cm.hiddenAt?.toISOString() ?? null,
       authorDisplayName: cm.authorDisplayName,
       authorUsername: cm.authorUsername,
       authorAvatarUrl: cm.authorAvatarUrl,
@@ -212,6 +226,13 @@ export default async function PostPage({ params }: Props) {
           Posts
         </Link>
       </nav>
+
+      {/* Hidden notice */}
+      {isHidden && (
+        <div className="mb-4 rounded-lg border border-yellow-500/20 bg-yellow-500/10 px-4 py-2 text-sm text-yellow-700 dark:text-yellow-400">
+          This post has been hidden by a moderator and is not visible to the public.
+        </div>
+      )}
 
       {/* Draft badge */}
       {p.status === "draft" && (

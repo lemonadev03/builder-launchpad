@@ -14,6 +14,7 @@ import {
 import { getSuspendedMembers } from "@/lib/queries/membership";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { ModerationActions } from "@/components/moderation-actions";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -233,18 +234,25 @@ export default async function ModerationPage({ params, searchParams }: Props) {
                   </p>
                 )}
 
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                  <Avatar className="h-4 w-4">
-                    {f.reporterAvatarUrl ? (
-                      <AvatarImage src={f.reporterAvatarUrl} />
-                    ) : null}
-                    <AvatarFallback className="text-[8px]">
-                      {f.reporterDisplayName.slice(0, 2).toUpperCase()}
-                    </AvatarFallback>
-                  </Avatar>
-                  <span>
-                    Reported by {f.reporterDisplayName}
-                  </span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Avatar className="h-4 w-4">
+                      {f.reporterAvatarUrl ? (
+                        <AvatarImage src={f.reporterAvatarUrl} />
+                      ) : null}
+                      <AvatarFallback className="text-[8px]">
+                        {f.reporterDisplayName.slice(0, 2).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span>
+                      Reported by {f.reporterDisplayName}
+                    </span>
+                  </div>
+                  <ModerationActions
+                    communitySlug={slug}
+                    targetType={f.targetType as "post" | "comment"}
+                    targetId={f.targetId}
+                  />
                 </div>
               </div>
             ))}

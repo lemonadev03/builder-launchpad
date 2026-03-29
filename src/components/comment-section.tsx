@@ -16,6 +16,7 @@ import { CommentEditor } from "@/components/comment-editor";
 import { CommentRenderer } from "@/components/comment-renderer";
 import { ReactionBar } from "@/components/reaction-bar";
 import { FlagButton } from "@/components/flag-button";
+import { cn } from "@/lib/utils";
 import type { TiptapContent } from "@/lib/tiptap";
 
 interface CommentData {
@@ -27,6 +28,7 @@ interface CommentData {
   createdAt: string;
   updatedAt: string;
   deletedAt: string | null;
+  hiddenAt: string | null;
   authorDisplayName: string;
   authorUsername: string;
   authorAvatarUrl: string | null;
@@ -304,8 +306,22 @@ function CommentItem({
     );
   }
 
+  const isHidden = !!comment.hiddenAt;
+  if (isHidden && !isModerator) {
+    return (
+      <div className="py-2 text-xs italic text-muted-foreground">
+        This comment has been hidden by a moderator.
+      </div>
+    );
+  }
+
   return (
-    <div className="group/item">
+    <div className={cn("group/item", isHidden && "rounded-md border border-yellow-500/20 bg-yellow-500/5 p-2")}>
+      {isHidden && (
+        <p className="mb-1 text-[10px] font-medium text-yellow-700 dark:text-yellow-400">
+          Hidden by moderator
+        </p>
+      )}
       <div className="flex items-center gap-2">
         <Avatar className={compact ? "h-5 w-5" : "h-7 w-7"}>
           {comment.authorAvatarUrl ? (
