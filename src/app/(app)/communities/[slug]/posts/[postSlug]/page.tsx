@@ -6,9 +6,13 @@ import { getCommunityBySlug } from "@/lib/queries/community";
 import { getAncestorChain } from "@/lib/queries/community-tree";
 import { getPostBySlug } from "@/lib/queries/post";
 import { getMembership } from "@/lib/queries/membership";
+import { getReactionCounts, getUserReactions } from "@/lib/queries/reaction";
+import { isBookmarked } from "@/lib/queries/bookmark";
 import { getSession } from "@/lib/session";
 import { PostAuthorCard } from "@/components/post-author-card";
 import { ShareUrl } from "@/components/share-url";
+import { ReactionBar } from "@/components/reaction-bar";
+import { BookmarkButton } from "@/components/bookmark-button";
 import { RichTextRenderer } from "@/components/editor/rich-text-renderer";
 import { Badge } from "@/components/ui/badge";
 import type { TiptapContent } from "@/lib/tiptap";
@@ -61,7 +65,18 @@ export default async function PostPage({ params }: Props) {
     if (!session || session.user.id !== p.authorId) notFound();
   }
 
-  const ancestors = c.parentId ? await getAncestorChain(c.id) : [];
+  const [ancestors, reactionCounts, userReactions, bookmarkedState] =
+    await Promise.all([
+      c.parentId ? getAncestorChain(c.id) : Promise.resolve([]),
+      getReactionCounts("post", p.id),
+      session
+        ? getUserReactions(session.user.id, "post", p.id)
+        : Promise.resolve([]),
+      session
+        ? isBookmarked(session.user.id, "post", p.id)
+        : Promise.resolve(false),
+    ]);
+
   const tags = (p.tags as string[]) ?? [];
   const postUrl =
     typeof window !== "undefined"
@@ -170,10 +185,22 @@ export default async function PostPage({ params }: Props) {
         <ShareUrl url={postUrl} />
       </section>
 
-      {/* Phase 7 placeholders */}
-      <section className="mb-4 rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-        Reactions coming soon
+      {/* Reactions + bookmark */}
+      <section className="mb-8 flex items-center justify-between">
+        <ReactionBar
+          targetType="post"
+          targetId={p.id}
+          counts={reactionCounts}
+          userReactions={userReactions}
+        />
+        <BookmarkButton
+          targetType="post"
+          targetId={p.id}
+          bookmarked={bookmarkedState}
+        />
       </section>
+
+      {/* Comments — 7.4 */}
       <section className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
         Comments coming soon
       </section>

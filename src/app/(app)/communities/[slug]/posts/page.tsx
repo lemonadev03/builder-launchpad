@@ -7,6 +7,8 @@ import {
   getTagsByCommunity,
 } from "@/lib/queries/post";
 import { getMembership } from "@/lib/queries/membership";
+import { getReactionCountsBatch } from "@/lib/queries/reaction";
+import { getCommentCountsBatch } from "@/lib/queries/comment";
 import { getSession } from "@/lib/session";
 import { PostCard } from "@/components/post-card";
 import { TagFilter } from "@/components/tag-filter";
@@ -62,6 +64,12 @@ export default async function CommunityPostsPage({
       : Promise.resolve(false),
   ]);
 
+  const postIds = posts.map((p) => p.id);
+  const [reactionCountsMap, commentCountsMap] = await Promise.all([
+    getReactionCountsBatch("post", postIds),
+    getCommentCountsBatch(postIds),
+  ]);
+
   const totalPages = Math.ceil(total / limit);
   const basePath = `/communities/${slug}/posts`;
 
@@ -109,6 +117,8 @@ export default async function CommunityPostsPage({
               publishedAt={p.publishedAt}
               tags={(p.tags as string[]) ?? []}
               excerpt={p.excerpt}
+              reactionCounts={reactionCountsMap.get(p.id)}
+              commentCount={commentCountsMap.get(p.id)}
             />
           ))}
         </div>
