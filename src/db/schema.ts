@@ -346,3 +346,55 @@ export const comment = pgTable(
     index("comment_parent_id_idx").on(table.parentCommentId),
   ],
 );
+
+// ── Reactions ──────────────────────────────────────────────────────
+
+export const reaction = pgTable(
+  "reaction",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    targetType: text("target_type", { enum: ["post", "comment"] }).notNull(),
+    targetId: text("target_id").notNull(),
+    reactionType: text("reaction_type", {
+      enum: ["like", "love", "fire", "insightful"],
+    }).notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    unique("reaction_user_target_type_uniq").on(
+      table.userId,
+      table.targetType,
+      table.targetId,
+      table.reactionType,
+    ),
+    index("reaction_target_idx").on(table.targetType, table.targetId),
+    index("reaction_user_id_idx").on(table.userId),
+  ],
+);
+
+// ── Bookmarks ──────────────────────────────────────────────────────
+
+export const bookmark = pgTable(
+  "bookmark",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    targetType: text("target_type", { enum: ["post"] }).notNull(),
+    targetId: text("target_id").notNull(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    unique("bookmark_user_target_uniq").on(
+      table.userId,
+      table.targetType,
+      table.targetId,
+    ),
+    index("bookmark_user_id_idx").on(table.userId),
+    index("bookmark_target_idx").on(table.targetType, table.targetId),
+  ],
+);

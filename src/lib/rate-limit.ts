@@ -99,3 +99,6 @@ export const checkCommentCreateRateLimit = createRateLimiter(
   50,
   24 * 60 * 60 * 1000,
 );
+
+// 60 reactions per user per hour
+export const checkReactionRateLimit = createRateLimiter(60, 60 * 60 * 1000);
