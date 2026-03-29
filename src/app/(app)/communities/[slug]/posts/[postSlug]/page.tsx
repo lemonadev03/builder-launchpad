@@ -6,13 +6,23 @@ import { getCommunityBySlug } from "@/lib/queries/community";
 import { getAncestorChain } from "@/lib/queries/community-tree";
 import { getPostBySlug } from "@/lib/queries/post";
 import { getMembership } from "@/lib/queries/membership";
-import { getReactionCounts, getUserReactions } from "@/lib/queries/reaction";
+import {
+  getReactionCounts,
+  getUserReactions,
+  getReactionCountsBatch,
+} from "@/lib/queries/reaction";
 import { isBookmarked } from "@/lib/queries/bookmark";
+import {
+  getCommentsByPost,
+  getAuthorRolesBatch,
+} from "@/lib/queries/comment";
+import { hasPermission } from "@/lib/permissions";
 import { getSession } from "@/lib/session";
 import { PostAuthorCard } from "@/components/post-author-card";
 import { ShareUrl } from "@/components/share-url";
 import { ReactionBar } from "@/components/reaction-bar";
 import { BookmarkButton } from "@/components/bookmark-button";
+import { CommentSection } from "@/components/comment-section";
 import { RichTextRenderer } from "@/components/editor/rich-text-renderer";
 import { Badge } from "@/components/ui/badge";
 import type { TiptapContent } from "@/lib/tiptap";
@@ -76,6 +86,83 @@ export default async function PostPage({ params }: Props) {
         ? isBookmarked(session.user.id, "post", p.id)
         : Promise.resolve(false),
     ]);
+
+  // Fetch comments with enrichment
+  const { comments: rawComments, total: commentTotal } =
+    await getCommentsByPost(p.id, { limit: 20, offset: 0, sort: "oldest" });
+
+  const allCommentIds = rawComments.flatMap((cm) => [
+    cm.id,
+    ...(cm.replies ?? []).map((r) => r.id),
+  ]);
+  const allAuthorIds = [
+    ...new Set(
+      rawComments.flatMap((cm) => [
+        cm.authorId,
+        ...(cm.replies ?? []).map((r) => r.authorId),
+      ]),
+    ),
+  ];
+
+  const [commentReactionMap, commentUserReactionMap, authorRolesMap, isModerator] =
+    await Promise.all([
+      getReactionCountsBatch("comment", allCommentIds),
+      session
+        ? Promise.all(
+            allCommentIds.map(async (id) => ({
+              id,
+              reactions: await getUserReactions(session.user.id, "comment", id),
+            })),
+          ).then((arr) => {
+            const m = new Map<string, string[]>();
+            for (const { id, reactions } of arr) m.set(id, reactions);
+            return m;
+          })
+        : Promise.resolve(new Map<string, string[]>()),
+      getAuthorRolesBatch(c.id, allAuthorIds),
+      session
+        ? hasPermission(session.user.id, c.id, "comment.delete")
+        : Promise.resolve(false),
+    ]);
+
+  type BaseComment = {
+    id: string;
+    content: unknown;
+    postId: string;
+    parentCommentId: string | null;
+    authorId: string;
+    createdAt: Date;
+    updatedAt: Date;
+    deletedAt: Date | null;
+    authorDisplayName: string;
+    authorUsername: string;
+    authorAvatarUrl: string | null;
+  };
+
+  function enrichComment(cm: BaseComment) {
+    return {
+      id: cm.id,
+      content: cm.content,
+      postId: cm.postId,
+      parentCommentId: cm.parentCommentId,
+      authorId: cm.authorId,
+      createdAt: cm.createdAt.toISOString(),
+      updatedAt: cm.updatedAt.toISOString(),
+      deletedAt: cm.deletedAt?.toISOString() ?? null,
+      authorDisplayName: cm.authorDisplayName,
+      authorUsername: cm.authorUsername,
+      authorAvatarUrl: cm.authorAvatarUrl,
+      authorRole: authorRolesMap.get(cm.authorId) ?? null,
+      reactionCounts: commentReactionMap.get(cm.id) ?? {},
+      userReactions: commentUserReactionMap.get(cm.id) ?? [],
+    };
+  }
+
+  const enrichedComments = rawComments.map((cm) => ({
+    ...enrichComment(cm),
+    replies: (cm.replies ?? []).map((r) => enrichComment(r)),
+    replyCount: cm.replyCount ?? 0,
+  }));
 
   const tags = (p.tags as string[]) ?? [];
   const postUrl =
@@ -200,10 +287,15 @@ export default async function PostPage({ params }: Props) {
         />
       </section>
 
-      {/* Comments — 7.4 */}
-      <section className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
-        Comments coming soon
-      </section>
+      {/* Comments */}
+      <CommentSection
+        communitySlug={slug}
+        postSlug={postSlug}
+        comments={enrichedComments}
+        total={commentTotal}
+        currentUserId={session?.user.id ?? null}
+        isModerator={isModerator}
+      />
     </div>
   );
 }

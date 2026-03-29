@@ -8,7 +8,7 @@ import {
   sql,
 } from "drizzle-orm";
 import { db } from "@/db";
-import { comment, profile } from "@/db/schema";
+import { comment, profile, membership } from "@/db/schema";
 import type { CreateCommentInput } from "@/lib/validations/comment";
 
 export async function createComment(
@@ -205,4 +205,34 @@ export async function getCommentCountTodayByUser(
     );
 
   return row?.count ?? 0;
+}
+
+export async function getAuthorRolesBatch(
+  communityId: string,
+  userIds: string[],
+): Promise<Map<string, string>> {
+  if (userIds.length === 0) return new Map();
+
+  const rows = await db
+    .select({
+      userId: membership.userId,
+      role: membership.role,
+    })
+    .from(membership)
+    .where(
+      and(
+        eq(membership.communityId, communityId),
+        eq(membership.status, "active"),
+        sql`${membership.userId} IN (${sql.join(
+          userIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`,
+      ),
+    );
+
+  const map = new Map<string, string>();
+  for (const row of rows) {
+    map.set(row.userId, row.role);
+  }
+  return map;
 }

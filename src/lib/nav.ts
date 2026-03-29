@@ -3,6 +3,7 @@ import {
   Users,
   Search,
   Briefcase,
+  Bookmark,
   User,
   type LucideIcon,
 } from "lucide-react";
@@ -18,5 +19,6 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Communities", href: "/communities", icon: Users },
   { label: "Directory", href: "/directory", icon: Search },
   { label: "Jobs", href: "/jobs", icon: Briefcase },
+  { label: "Bookmarks", href: "/bookmarks", icon: Bookmark },
   { label: "Profile", href: "/profile", icon: User },
 ];
