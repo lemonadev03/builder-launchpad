@@ -7,12 +7,15 @@ import { getMembership } from "@/lib/queries/membership";
 import { getUserJoinRequestStatus } from "@/lib/queries/join-request";
 import { getAncestorChain, getChildCommunities } from "@/lib/queries/community-tree";
 import { getRecentPostsByCommunity } from "@/lib/queries/post";
+import { getReactionCountsBatch } from "@/lib/queries/reaction";
+import { getCommentCountsBatch } from "@/lib/queries/comment";
 import { hasPermission } from "@/lib/permissions";
 import { getSession } from "@/lib/session";
 import { CommunityHeader } from "@/components/community-header";
 import { JoinButton } from "@/components/join-button";
 import { LeaveButton } from "@/components/leave-button";
 import { CreateSubCommunity } from "@/components/create-sub-community";
+import { PostCard } from "@/components/post-card";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 
@@ -78,6 +81,13 @@ export default async function CommunityPage({ params }: Props) {
     c.parentId ? getAncestorChain(c.id) : [],
     getChildCommunities(c.id),
     getRecentPostsByCommunity(c.id, 3),
+  ]);
+
+  // Engagement counts for recent posts
+  const recentPostIds = recentPosts.map((p) => p.id);
+  const [recentReactionMap, recentCommentMap] = await Promise.all([
+    getReactionCountsBatch("post", recentPostIds),
+    getCommentCountsBatch(recentPostIds),
   ]);
 
   const tierLabel = c.subTierLabel || "Sub-communities";
@@ -233,27 +243,20 @@ export default async function CommunityPage({ params }: Props) {
             </div>
             <div className="space-y-2">
               {recentPosts.map((p) => (
-                <Link
+                <PostCard
                   key={p.id}
-                  href={`/communities/${slug}/posts/${p.slug}`}
-                  className="block rounded-lg border px-3 py-2.5 transition-colors hover:bg-muted/50"
-                >
-                  <p className="truncate text-sm font-medium">{p.title}</p>
-                  <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>{p.authorDisplayName}</span>
-                    {p.publishedAt && (
-                      <>
-                        <span>&middot;</span>
-                        <time dateTime={p.publishedAt.toISOString()}>
-                          {p.publishedAt.toLocaleDateString("en-US", {
-                            month: "short",
-                            day: "numeric",
-                          })}
-                        </time>
-                      </>
-                    )}
-                  </div>
-                </Link>
+                  title={p.title}
+                  slug={p.slug}
+                  communitySlug={slug}
+                  authorName={p.authorDisplayName}
+                  authorUsername={p.authorUsername}
+                  authorAvatarUrl={p.authorAvatarUrl}
+                  publishedAt={p.publishedAt}
+                  tags={(p.tags as string[]) ?? []}
+                  excerpt={p.excerpt}
+                  reactionCounts={recentReactionMap.get(p.id)}
+                  commentCount={recentCommentMap.get(p.id)}
+                />
               ))}
             </div>
           </section>
