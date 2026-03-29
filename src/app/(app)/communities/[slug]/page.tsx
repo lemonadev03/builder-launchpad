@@ -6,6 +6,7 @@ import { getCommunityBySlug } from "@/lib/queries/community";
 import { getMembership } from "@/lib/queries/membership";
 import { getUserJoinRequestStatus } from "@/lib/queries/join-request";
 import { getAncestorChain, getChildCommunities } from "@/lib/queries/community-tree";
+import { getRecentPostsByCommunity } from "@/lib/queries/post";
 import { hasPermission } from "@/lib/permissions";
 import { getSession } from "@/lib/session";
 import { CommunityHeader } from "@/components/community-header";
@@ -72,10 +73,11 @@ export default async function CommunityPage({ params }: Props) {
     }
   }
 
-  // Fetch hierarchy data
-  const [ancestors, children] = await Promise.all([
+  // Fetch hierarchy data + recent posts
+  const [ancestors, children, recentPosts] = await Promise.all([
     c.parentId ? getAncestorChain(c.id) : [],
     getChildCommunities(c.id),
+    getRecentPostsByCommunity(c.id, 3),
   ]);
 
   const tierLabel = c.subTierLabel || "Sub-communities";
@@ -214,6 +216,48 @@ export default async function CommunityPage({ params }: Props) {
             </div>
           )}
         </section>
+
+        {/* Recent Posts */}
+        {recentPosts.length > 0 && (
+          <section>
+            <div className="mb-2 flex items-center justify-between">
+              <h2 className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                Recent Posts
+              </h2>
+              <Link
+                href={`/communities/${slug}/posts`}
+                className="text-xs text-primary hover:underline"
+              >
+                View all
+              </Link>
+            </div>
+            <div className="space-y-2">
+              {recentPosts.map((p) => (
+                <Link
+                  key={p.id}
+                  href={`/communities/${slug}/posts/${p.slug}`}
+                  className="block rounded-lg border px-3 py-2.5 transition-colors hover:bg-muted/50"
+                >
+                  <p className="truncate text-sm font-medium">{p.title}</p>
+                  <div className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                    <span>{p.authorDisplayName}</span>
+                    {p.publishedAt && (
+                      <>
+                        <span>&middot;</span>
+                        <time dateTime={p.publishedAt.toISOString()}>
+                          {p.publishedAt.toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })}
+                        </time>
+                      </>
+                    )}
+                  </div>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
       </div>
     </div>
   );
