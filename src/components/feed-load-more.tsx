@@ -24,9 +24,10 @@ interface FeedPost {
 
 interface FeedLoadMoreProps {
   initialCursor: string | null;
+  communityId?: string | null;
 }
 
-export function FeedLoadMore({ initialCursor }: FeedLoadMoreProps) {
+export function FeedLoadMore({ initialCursor, communityId }: FeedLoadMoreProps) {
   const [pages, setPages] = useState<FeedPost[][]>([]);
   const [cursor, setCursor] = useState<string | null>(initialCursor);
   const [isPending, startTransition] = useTransition();
@@ -36,9 +37,9 @@ export function FeedLoadMore({ initialCursor }: FeedLoadMoreProps) {
   function loadMore() {
     if (!cursor) return;
     startTransition(async () => {
-      const res = await fetch(
-        `/api/feed?limit=20&cursor=${encodeURIComponent(cursor)}`,
-      );
+      const params = new URLSearchParams({ limit: "20", cursor });
+      if (communityId) params.set("communityId", communityId);
+      const res = await fetch(`/api/feed?${params.toString()}`);
       if (!res.ok) return;
       const data = await res.json();
       setPages((prev) => [...prev, data.posts]);
@@ -55,7 +56,7 @@ export function FeedLoadMore({ initialCursor }: FeedLoadMoreProps) {
               title={p.title}
               slug={p.slug}
               communitySlug={p.communitySlug}
-              communityName={p.communityName}
+              communityName={communityId ? undefined : p.communityName}
               authorName={p.authorDisplayName}
               authorUsername={p.authorUsername}
               authorAvatarUrl={p.authorAvatarUrl}

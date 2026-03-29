@@ -10,15 +10,23 @@ import { getUserCommunities } from "@/lib/queries/membership";
 import { PostCard } from "@/components/post-card";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { FeedLoadMore } from "@/components/feed-load-more";
+import { FeedCommunityFilter } from "@/components/feed-community-filter";
 import { buttonVariants } from "@/components/ui/button";
 
 export const metadata: Metadata = {
   title: "Feed | Builder Launchpad",
 };
 
-export default async function FeedPage() {
+interface Props {
+  searchParams: Promise<{ community?: string }>;
+}
+
+export default async function FeedPage({ searchParams }: Props) {
   const session = await getSession();
   if (!session) redirect("/login");
+
+  const sp = await searchParams;
+  const selectedCommunityId = sp.community ?? null;
 
   const communities = await getUserCommunities(session.user.id);
 
@@ -46,6 +54,7 @@ export default async function FeedPage() {
 
   const { posts, nextCursor } = await getPersonalFeed(session.user.id, {
     limit: 20,
+    communityId: selectedCommunityId ?? undefined,
   });
 
   const postIds = posts.map((p) => p.id);
@@ -60,15 +69,25 @@ export default async function FeedPage() {
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-4">
         <Newspaper className="h-5 w-5" />
         <h1 className="text-lg font-semibold">Feed</h1>
+      </div>
+
+      {/* Community filter */}
+      <div className="mb-4">
+        <FeedCommunityFilter
+          communities={communities}
+          selected={selectedCommunityId}
+        />
       </div>
 
       {posts.length === 0 ? (
         <div className="rounded-lg border border-dashed p-8 text-center">
           <p className="text-sm text-muted-foreground">
-            No posts yet from your communities. Check back soon.
+            {selectedCommunityId
+              ? "No posts in this community yet."
+              : "No posts yet from your communities. Check back soon."}
           </p>
         </div>
       ) : (
@@ -79,7 +98,7 @@ export default async function FeedPage() {
                 title={p.title}
                 slug={p.slug}
                 communitySlug={p.communitySlug}
-                communityName={p.communityName}
+                communityName={selectedCommunityId ? undefined : p.communityName}
                 authorName={p.authorDisplayName}
                 authorUsername={p.authorUsername}
                 authorAvatarUrl={p.authorAvatarUrl}
@@ -99,7 +118,10 @@ export default async function FeedPage() {
             </div>
           ))}
 
-          <FeedLoadMore initialCursor={cursorString} />
+          <FeedLoadMore
+            initialCursor={cursorString}
+            communityId={selectedCommunityId}
+          />
         </div>
       )}
     </div>
