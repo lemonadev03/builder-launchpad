@@ -5,6 +5,8 @@ import { requireSession } from "@/lib/session";
 import { getCommunityBySlug } from "@/lib/queries/community";
 import { getMemberCount } from "@/lib/queries/membership";
 import { getPendingJoinRequestCount } from "@/lib/queries/join-request";
+import { getOpenFlagCount } from "@/lib/queries/flag";
+import { getAllDescendants } from "@/lib/queries/community-tree";
 import { hasPermission } from "@/lib/permissions";
 import { Badge } from "@/components/ui/badge";
 
@@ -26,9 +28,13 @@ export default async function CommunityDashboardPage({ params }: Props) {
   );
   if (!canManage) notFound();
 
-  const [memberCount, pendingCount] = await Promise.all([
+  const descendants = await getAllDescendants(community.id);
+  const allCommunityIds = [community.id, ...descendants.map((d) => d.id)];
+
+  const [memberCount, pendingCount, openFlagCount] = await Promise.all([
     getMemberCount(community.id),
     getPendingJoinRequestCount(community.id),
+    getOpenFlagCount(allCommunityIds),
   ]);
 
   const links = [
@@ -61,11 +67,11 @@ export default async function CommunityDashboardPage({ params }: Props) {
       enabled: true,
     },
     {
-      href: "#",
+      href: `/communities/${slug}/manage/moderation`,
       icon: Shield,
       label: "Moderation",
       description: "Content flags and member actions",
-      enabled: false,
+      enabled: true,
     },
   ];
 
@@ -76,7 +82,7 @@ export default async function CommunityDashboardPage({ params }: Props) {
       </div>
 
       {/* Stats */}
-      <div className="mb-8 grid grid-cols-2 gap-4">
+      <div className="mb-8 grid grid-cols-3 gap-4">
         <div className="rounded-lg border p-4">
           <p className="text-2xl font-bold">{memberCount}</p>
           <p className="text-sm text-muted-foreground">
@@ -87,6 +93,12 @@ export default async function CommunityDashboardPage({ params }: Props) {
           <p className="text-2xl font-bold">{pendingCount}</p>
           <p className="text-sm text-muted-foreground">
             Pending request{pendingCount !== 1 ? "s" : ""}
+          </p>
+        </div>
+        <div className="rounded-lg border p-4">
+          <p className="text-2xl font-bold">{openFlagCount}</p>
+          <p className="text-sm text-muted-foreground">
+            Open flag{openFlagCount !== 1 ? "s" : ""}
           </p>
         </div>
       </div>

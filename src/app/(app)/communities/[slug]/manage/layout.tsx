@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { label: "Invites", href: "/invites" },
   { label: "Requests", href: "/requests" },
   { label: "Posts", href: "/posts" },
+  { label: "Moderation", href: "/moderation" },
 ];
 
 export default async function CommunityManageLayout({
@@ -28,12 +29,11 @@ export default async function CommunityManageLayout({
   const community = await getCommunityBySlug(slug);
   if (!community || community.archivedAt) notFound();
 
-  const canManage = await hasPermission(
-    session.user.id,
-    community.id,
-    "community.manage_settings",
-  );
-  if (!canManage) redirect(`/communities/${slug}`);
+  const [canManage, canModerate] = await Promise.all([
+    hasPermission(session.user.id, community.id, "community.manage_settings"),
+    hasPermission(session.user.id, community.id, "content.moderate"),
+  ]);
+  if (!canManage && !canModerate) redirect(`/communities/${slug}`);
 
   return (
     <div>

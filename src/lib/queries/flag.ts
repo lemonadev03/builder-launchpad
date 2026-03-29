@@ -1,6 +1,6 @@
-import { and, eq, count as drizzleCount, sql, gte } from "drizzle-orm";
+import { and, eq, desc, count as drizzleCount, sql, gte, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { flag } from "@/db/schema";
+import { flag, post, comment, profile, community } from "@/db/schema";
 
 export async function createFlag(
   userId: string,
@@ -123,4 +123,106 @@ export async function getUserDailyFlagCount(userId: string): Promise<number> {
     .where(and(eq(flag.userId, userId), gte(flag.createdAt, dayAgo)));
 
   return row?.count ?? 0;
+}
+
+export async function getFlagsByCommunity(
+  communityIds: string[],
+  opts: {
+    status?: "open" | "resolved" | "dismissed";
+    limit: number;
+    offset: number;
+  },
+) {
+  if (communityIds.length === 0) return { flags: [], total: 0 };
+
+  const conditions = [inArray(flag.communityId, communityIds)];
+  if (opts.status) {
+    conditions.push(eq(flag.status, opts.status));
+  }
+
+  const where = and(...conditions);
+
+  const flags = await db
+    .select({
+      id: flag.id,
+      targetType: flag.targetType,
+      targetId: flag.targetId,
+      reason: flag.reason,
+      description: flag.description,
+      status: flag.status,
+      communityId: flag.communityId,
+      createdAt: flag.createdAt,
+      resolvedAt: flag.resolvedAt,
+      reporterDisplayName: profile.displayName,
+      reporterUsername: profile.username,
+      reporterAvatarUrl: profile.avatarUrl,
+      communityName: community.name,
+      communitySlug: community.slug,
+    })
+    .from(flag)
+    .innerJoin(profile, eq(flag.userId, profile.userId))
+    .innerJoin(community, eq(flag.communityId, community.id))
+    .where(where)
+    .orderBy(desc(flag.createdAt))
+    .limit(opts.limit)
+    .offset(opts.offset);
+
+  const [totalRow] = await db
+    .select({ count: drizzleCount() })
+    .from(flag)
+    .where(where);
+
+  return { flags, total: totalRow?.count ?? 0 };
+}
+
+export async function getOpenFlagCount(communityIds: string[]): Promise<number> {
+  if (communityIds.length === 0) return 0;
+
+  const [row] = await db
+    .select({ count: drizzleCount() })
+    .from(flag)
+    .where(
+      and(inArray(flag.communityId, communityIds), eq(flag.status, "open")),
+    );
+
+  return row?.count ?? 0;
+}
+
+export async function getFlaggedPostPreview(postId: string) {
+  const [row] = await db
+    .select({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      excerpt: post.excerpt,
+      communitySlug: community.slug,
+      authorDisplayName: profile.displayName,
+    })
+    .from(post)
+    .innerJoin(community, eq(post.communityId, community.id))
+    .innerJoin(profile, eq(post.authorId, profile.userId))
+    .where(eq(post.id, postId))
+    .limit(1);
+
+  return row ?? null;
+}
+
+export async function getFlaggedCommentPreview(commentId: string) {
+  const [row] = await db
+    .select({
+      id: comment.id,
+      content: comment.content,
+      postSlug: post.slug,
+      postTitle: post.title,
+      communitySlug: community.slug,
+      authorDisplayName: profile.displayName,
+    })
+    .from(comment)
+    .innerJoin(post, eq(comment.postId, post.id))
+    .innerJoin(community, eq(post.communityId, community.id))
+    .innerJoin(profile, eq(comment.authorId, profile.userId))
+    .where(eq(comment.id, commentId))
+    .limit(1);
+
+  return row ?? null;
 }

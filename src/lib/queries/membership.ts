@@ -1,4 +1,4 @@
-import { and, eq, count } from "drizzle-orm";
+import { and, eq, count, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { membership, profile, community } from "@/db/schema";
 import { cascadeLeaveDescendants } from "@/lib/queries/membership-inheritance";
@@ -174,6 +174,33 @@ export async function canRejoin(userId: string, communityId: string) {
   // For now, always allow — the 24h cooldown requires persisting leftAt which adds complexity.
   // The unique constraint prevents duplicate active memberships.
   return true;
+}
+
+export async function getSuspendedMembers(communityIds: string[]) {
+  if (communityIds.length === 0) return [];
+
+  return db
+    .select({
+      membershipId: membership.id,
+      userId: membership.userId,
+      communityId: membership.communityId,
+      role: membership.role,
+      joinedAt: membership.joinedAt,
+      displayName: profile.displayName,
+      username: profile.username,
+      avatarUrl: profile.avatarUrl,
+      communityName: community.name,
+      communitySlug: community.slug,
+    })
+    .from(membership)
+    .innerJoin(profile, eq(membership.userId, profile.userId))
+    .innerJoin(community, eq(membership.communityId, community.id))
+    .where(
+      and(
+        inArray(membership.communityId, communityIds),
+        eq(membership.status, "suspended"),
+      ),
+    );
 }
 
 export async function getUserCommunities(userId: string) {
