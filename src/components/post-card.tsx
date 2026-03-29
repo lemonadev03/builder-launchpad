@@ -8,6 +8,7 @@ interface PostCardProps {
   title: string;
   slug: string;
   communitySlug: string;
+  communityName?: string;
   authorName: string;
   authorUsername: string;
   authorAvatarUrl: string | null;
@@ -22,6 +23,7 @@ export function PostCard({
   title,
   slug,
   communitySlug,
+  communityName,
   authorName,
   authorUsername,
   authorAvatarUrl,
@@ -36,6 +38,12 @@ export function PostCard({
       href={`/communities/${communitySlug}/posts/${slug}`}
       className="block rounded-lg border px-4 py-3.5 transition-colors hover:bg-muted/50"
     >
+      {communityName && (
+        <p className="mb-1 text-[11px] font-medium text-muted-foreground">
+          {communityName}
+        </p>
+      )}
+
       <h3 className="line-clamp-2 text-sm font-medium">{title}</h3>
 
       <div className="mt-1.5 flex items-center gap-2">
