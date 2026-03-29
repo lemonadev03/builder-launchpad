@@ -26,7 +26,9 @@ export type CommunityAction =
   | "member.remove"
   | "member.change_role"
   | "post.create"
-  | "post.delete";
+  | "post.delete"
+  | "comment.create"
+  | "comment.delete";
 
 const REQUIRED_ROLE: Record<CommunityAction, CommunityRole> = {
   "community.view": "member",
@@ -40,6 +42,8 @@ const REQUIRED_ROLE: Record<CommunityAction, CommunityRole> = {
   "member.change_role": "admin",
   "post.create": "member",
   "post.delete": "moderator",
+  "comment.create": "member",
+  "comment.delete": "moderator",
 };
 
 // ── Core permission check ───────────────────────────────────────────

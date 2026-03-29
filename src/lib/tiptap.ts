@@ -10,6 +10,7 @@ export type TiptapContent = {
 
 const MAX_IMAGES = 10;
 const MAX_CONTENT_SIZE = 50 * 1024; // 50KB
+const MAX_COMMENT_SIZE = 8 * 1024; // 8KB (~2000 chars with formatting)
 
 export function countImages(node: TiptapContent): number {
   let count = 0;
@@ -54,6 +55,30 @@ export function validatePostContent(
   const imageCount = countImages(content);
   if (imageCount > MAX_IMAGES) {
     return { valid: false, error: `Too many images (max ${MAX_IMAGES})` };
+  }
+
+  return { valid: true };
+}
+
+export function validateCommentContent(
+  content: TiptapContent,
+): { valid: true } | { valid: false; error: string } {
+  const size = JSON.stringify(content).length;
+  if (size > MAX_COMMENT_SIZE) {
+    return { valid: false, error: "Comment is too long (max ~2000 characters)" };
+  }
+
+  const plainText = extractPlainText(content, 2100);
+  if (plainText.length > 2000) {
+    return { valid: false, error: "Comment must be 2000 characters or less" };
+  }
+
+  if (plainText.trim().length === 0) {
+    return { valid: false, error: "Comment cannot be empty" };
+  }
+
+  if (countImages(content) > 0) {
+    return { valid: false, error: "Images are not allowed in comments" };
   }
 
   return { valid: true };

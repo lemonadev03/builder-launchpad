@@ -318,3 +318,31 @@ export const post = pgTable(
     index("post_status_idx").on(table.status),
   ],
 );
+
+// ── Comments ───────────────────────────────────────────────────────
+
+export const comment = pgTable(
+  "comment",
+  {
+    id: text("id").primaryKey(),
+    content: jsonb("content").notNull(),
+    postId: text("post_id")
+      .notNull()
+      .references(() => post.id, { onDelete: "cascade" }),
+    parentCommentId: text("parent_comment_id"),
+    authorId: text("author_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    deletedAt: timestamp("deleted_at"),
+  },
+  (table) => [
+    index("comment_post_id_idx").on(table.postId),
+    index("comment_author_id_idx").on(table.authorId),
+    index("comment_parent_id_idx").on(table.parentCommentId),
+  ],
+);

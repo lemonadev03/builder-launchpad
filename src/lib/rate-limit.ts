@@ -93,3 +93,9 @@ export const checkPostUpdateRateLimit = createRateLimiter(
   30,
   60 * 60 * 1000,
 );
+
+// 50 comments per user per day
+export const checkCommentCreateRateLimit = createRateLimiter(
+  50,
+  24 * 60 * 60 * 1000,
+);
