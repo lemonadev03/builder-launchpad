@@ -37,6 +37,7 @@ export default async function EditPostPage({ params }: Props) {
           title: p.title,
           slug: p.slug,
           content: p.content as TiptapContent,
+          tags: (p.tags as string[]) ?? [],
           status: p.status,
           communitySlug: p.communitySlug,
           communityId: p.communityId,

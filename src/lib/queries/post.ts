@@ -19,6 +19,7 @@ export async function createPost(userId: string, data: CreatePostInput) {
       slug,
       content: data.content,
       excerpt,
+      tags: data.tags ?? [],
       communityId: data.communityId,
       authorId: userId,
       status: data.status,
@@ -37,6 +38,7 @@ export async function getPostBySlug(communitySlug: string, postSlug: string) {
       slug: post.slug,
       content: post.content,
       excerpt: post.excerpt,
+      tags: post.tags,
       status: post.status,
       publishedAt: post.publishedAt,
       createdAt: post.createdAt,
@@ -90,6 +92,7 @@ export async function getPostById(postId: string) {
       slug: post.slug,
       content: post.content,
       excerpt: post.excerpt,
+      tags: post.tags,
       status: post.status,
       communityId: post.communityId,
       authorId: post.authorId,
@@ -110,6 +113,7 @@ export async function updatePost(postId: string, data: UpdatePostInput) {
   const updates: Record<string, unknown> = {};
 
   if (data.title !== undefined) updates.title = data.title;
+  if (data.tags !== undefined) updates.tags = data.tags;
   if (data.content !== undefined) {
     updates.content = data.content;
     updates.excerpt = extractPlainText(data.content as TiptapContent);
@@ -152,8 +156,22 @@ export async function archivePost(postId: string) {
 
 export async function getPublishedPostsByCommunity(
   communityId: string,
-  opts: { limit: number; offset: number },
+  opts: { limit: number; offset: number; tag?: string },
 ) {
+  const baseConditions = [
+    eq(post.communityId, communityId),
+    eq(post.status, "published"),
+    isNull(post.archivedAt),
+  ];
+
+  if (opts.tag) {
+    baseConditions.push(
+      sql`${post.tags} @> ${JSON.stringify([opts.tag])}::jsonb`,
+    );
+  }
+
+  const whereClause = and(...baseConditions);
+
   const [posts, totalRows] = await Promise.all([
     db
       .select({
@@ -161,6 +179,7 @@ export async function getPublishedPostsByCommunity(
         title: post.title,
         slug: post.slug,
         excerpt: post.excerpt,
+        tags: post.tags,
         publishedAt: post.publishedAt,
         authorDisplayName: profile.displayName,
         authorUsername: profile.username,
@@ -168,29 +187,31 @@ export async function getPublishedPostsByCommunity(
       })
       .from(post)
       .innerJoin(profile, eq(post.authorId, profile.userId))
-      .where(
-        and(
-          eq(post.communityId, communityId),
-          eq(post.status, "published"),
-          isNull(post.archivedAt),
-        ),
-      )
+      .where(whereClause)
       .orderBy(desc(post.publishedAt))
       .limit(opts.limit)
       .offset(opts.offset),
     db
       .select({ count: drizzleCount() })
       .from(post)
-      .where(
-        and(
-          eq(post.communityId, communityId),
-          eq(post.status, "published"),
-          isNull(post.archivedAt),
-        ),
-      ),
+      .where(whereClause),
   ]);
 
   return { posts, total: totalRows[0]?.count ?? 0 };
+}
+
+export async function getTagsByCommunity(communityId: string) {
+  const rows = await db.execute(
+    sql`SELECT t.tag, COUNT(*)::int as count
+        FROM ${post}, jsonb_array_elements_text(${post.tags}) AS t(tag)
+        WHERE ${post.communityId} = ${communityId}
+          AND ${post.status} = 'published'
+          AND ${post.archivedAt} IS NULL
+        GROUP BY t.tag
+        ORDER BY count DESC`,
+  );
+
+  return rows as unknown as Array<{ tag: string; count: number }>;
 }
 
 export async function getRecentPostsByCommunity(
@@ -203,6 +224,7 @@ export async function getRecentPostsByCommunity(
       title: post.title,
       slug: post.slug,
       excerpt: post.excerpt,
+      tags: post.tags,
       publishedAt: post.publishedAt,
       authorDisplayName: profile.displayName,
       authorUsername: profile.username,

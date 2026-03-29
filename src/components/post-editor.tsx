@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
 import { RichTextEditor } from "@/components/editor/rich-text-editor";
+import { PostTagInput } from "@/components/post-tag-input";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,6 +25,7 @@ interface PostEditorProps {
     slug: string;
     content: TiptapContent;
     status: string;
+    tags: string[];
     communitySlug: string;
     communityId: string;
   };
@@ -47,6 +49,7 @@ export function PostEditor({
       communities[0]?.communitySlug ??
       "",
   );
+  const [tags, setTags] = useState<string[]>(post?.tags ?? []);
   const [saving, setSaving] = useState(false);
 
   const community = communities.find(
@@ -75,7 +78,7 @@ export function PostEditor({
           {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ title, content, status }),
+            body: JSON.stringify({ title, content, tags, status }),
           },
         );
         const data = await res.json();
@@ -102,6 +105,7 @@ export function PostEditor({
             body: JSON.stringify({
               title,
               content,
+              tags,
               communityId: community.communityId,
               status,
             }),
@@ -165,6 +169,12 @@ export function PostEditor({
           placeholder="Post title"
           maxLength={200}
         />
+      </div>
+
+      {/* Tags */}
+      <div className="space-y-2">
+        <Label>Tags</Label>
+        <PostTagInput tags={tags} onChange={setTags} />
       </div>
 
       {/* Editor */}

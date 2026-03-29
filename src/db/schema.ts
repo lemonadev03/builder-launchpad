@@ -293,6 +293,7 @@ export const post = pgTable(
     slug: text("slug").notNull(),
     content: jsonb("content").notNull(),
     excerpt: text("excerpt"),
+    tags: jsonb("tags").$type<string[]>().default([]),
     communityId: text("community_id")
       .notNull()
       .references(() => community.id, { onDelete: "cascade" }),

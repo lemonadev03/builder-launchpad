@@ -22,6 +22,13 @@
       "when": 1774744077011,
       "tag": "0002_faithful_living_lightning",
       "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "7",
+      "when": 1774744253599,
+      "tag": "0003_clever_madelyne_pryor",
+      "breakpoints": true
     }
   ]
 }
