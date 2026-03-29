@@ -1,6 +1,7 @@
-import { and, eq } from "drizzle-orm";
+import { and, eq, desc, inArray, gte, lte } from "drizzle-orm";
 import { db } from "@/db";
-import { post, comment, flag, moderationAction } from "@/db/schema";
+import { post, comment, flag, moderationAction, profile } from "@/db/schema";
+import { count as drizzleCount } from "drizzle-orm";
 
 type ModerationActionType =
   | "hide_post"
@@ -109,4 +110,76 @@ export async function resolveFlags(
         eq(flag.status, "open"),
       ),
     );
+}
+
+export async function getModerationLog(
+  communityIds: string[],
+  opts: {
+    limit: number;
+    offset: number;
+    action?: string;
+    moderatorId?: string;
+    dateFrom?: Date;
+    dateTo?: Date;
+  },
+) {
+  if (communityIds.length === 0) return { actions: [], total: 0 };
+
+  const conditions = [inArray(moderationAction.communityId, communityIds)];
+
+  if (opts.action) {
+    conditions.push(eq(moderationAction.action, opts.action as typeof moderationAction.action.enumValues[number]));
+  }
+  if (opts.moderatorId) {
+    conditions.push(eq(moderationAction.moderatorId, opts.moderatorId));
+  }
+  if (opts.dateFrom) {
+    conditions.push(gte(moderationAction.createdAt, opts.dateFrom));
+  }
+  if (opts.dateTo) {
+    conditions.push(lte(moderationAction.createdAt, opts.dateTo));
+  }
+
+  const where = and(...conditions);
+
+  const actions = await db
+    .select({
+      id: moderationAction.id,
+      action: moderationAction.action,
+      targetType: moderationAction.targetType,
+      targetId: moderationAction.targetId,
+      reason: moderationAction.reason,
+      createdAt: moderationAction.createdAt,
+      moderatorDisplayName: profile.displayName,
+      moderatorUsername: profile.username,
+    })
+    .from(moderationAction)
+    .innerJoin(profile, eq(moderationAction.moderatorId, profile.userId))
+    .where(where)
+    .orderBy(desc(moderationAction.createdAt))
+    .limit(opts.limit)
+    .offset(opts.offset);
+
+  const [totalRow] = await db
+    .select({ count: drizzleCount() })
+    .from(moderationAction)
+    .where(where);
+
+  return { actions, total: totalRow?.count ?? 0 };
+}
+
+export async function getModeratorList(communityIds: string[]) {
+  if (communityIds.length === 0) return [];
+
+  const rows = await db
+    .selectDistinct({
+      moderatorId: moderationAction.moderatorId,
+      displayName: profile.displayName,
+      username: profile.username,
+    })
+    .from(moderationAction)
+    .innerJoin(profile, eq(moderationAction.moderatorId, profile.userId))
+    .where(inArray(moderationAction.communityId, communityIds));
+
+  return rows;
 }

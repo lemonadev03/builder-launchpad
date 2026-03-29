@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Shield, AlertTriangle, UserX } from "lucide-react";
+import { Shield, AlertTriangle, UserX, ScrollText } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { getCommunityBySlug } from "@/lib/queries/community";
 import { getAllDescendants } from "@/lib/queries/community-tree";
@@ -48,11 +48,10 @@ export default async function ModerationPage({ params, searchParams }: Props) {
   const c = await getCommunityBySlug(slug);
   if (!c || c.archivedAt) notFound();
 
-  const canModerate = await hasPermission(
-    session.user.id,
-    c.id,
-    "content.moderate",
-  );
+  const [canModerate, isAdmin] = await Promise.all([
+    hasPermission(session.user.id, c.id, "content.moderate"),
+    hasPermission(session.user.id, c.id, "community.manage_settings"),
+  ]);
   if (!canModerate) notFound();
 
   // Get this community + all descendants for cascade
@@ -90,9 +89,20 @@ export default async function ModerationPage({ params, searchParams }: Props) {
 
   return (
     <div>
-      <div className="mb-6 flex items-center gap-2">
-        <Shield className="h-5 w-5" />
-        <h2 className="text-lg font-semibold">Moderation</h2>
+      <div className="mb-6 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Shield className="h-5 w-5" />
+          <h2 className="text-lg font-semibold">Moderation</h2>
+        </div>
+        {isAdmin && (
+          <Link
+            href={`/communities/${slug}/manage/moderation/log`}
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
+          >
+            <ScrollText className="h-4 w-4" />
+            View log
+          </Link>
+        )}
       </div>
 
       {/* Stats */}
