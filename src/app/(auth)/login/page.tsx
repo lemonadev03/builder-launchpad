@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -15,9 +16,9 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 
 type FormState = "idle" | "loading" | "magic-link-sent";
+type LoginMethod = "password" | "magic-link";
 
 export default function LoginPage() {
   return (
@@ -36,6 +37,7 @@ function LoginForm() {
     : searchParams.get("redirect") ?? "/feed";
   const [formState, setFormState] = useState<FormState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [loginMethod, setLoginMethod] = useState<LoginMethod>("password");
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -59,7 +61,7 @@ function LoginForm() {
     router.push(redirectTo);
   }
 
-  async function handleMagicLink() {
+  async function sendMagicLink() {
     if (!email) {
       setError("Enter your email first.");
       return;
@@ -81,19 +83,35 @@ function LoginForm() {
     setFormState("magic-link-sent");
   }
 
+  async function handleMagicLink(e: React.FormEvent) {
+    e.preventDefault();
+    await sendMagicLink();
+  }
+
+  function handleMethodChange(method: LoginMethod) {
+    setLoginMethod(method);
+    setError(null);
+  }
+
   if (formState === "magic-link-sent") {
     return (
-      <Card>
+      <Card className="border-border/70 shadow-lg shadow-primary/5">
         <CardHeader className="text-center">
+          <p className="text-xs font-medium uppercase tracking-[0.24em] text-primary/70">
+            Magic Link Sent
+          </p>
           <CardTitle className="text-xl">Check your email</CardTitle>
-          <CardDescription>
+          <CardDescription className="mx-auto max-w-sm">
             We sent a sign-in link to <strong>{email}</strong>. Click it to log
             in. The link expires in 15 minutes.
           </CardDescription>
         </CardHeader>
-        <CardFooter className="justify-center">
+        <CardFooter className="justify-center gap-2">
           <Button variant="ghost" onClick={() => setFormState("idle")}>
-            Back to login
+            Back
+          </Button>
+          <Button variant="outline" onClick={() => void sendMagicLink()}>
+            Send again
           </Button>
         </CardFooter>
       </Card>
@@ -101,76 +119,103 @@ function LoginForm() {
   }
 
   return (
-    <Card>
-      <CardHeader className="text-center">
+    <Card className="border-border/70 shadow-lg shadow-primary/5">
+      <CardHeader className="gap-2 text-center">
+        <p className="text-xs font-medium uppercase tracking-[0.24em] text-primary/70">
+          Builder Launchpad
+        </p>
         <CardTitle className="text-xl">Welcome back</CardTitle>
-        <CardDescription>
-          Log in to Builder Launchpad
-        </CardDescription>
+        <div className="mt-2 grid grid-cols-2 gap-1 rounded-xl border border-border/70 bg-muted/60 p-1">
+          <button
+            type="button"
+            onClick={() => handleMethodChange("password")}
+            aria-pressed={loginMethod === "password"}
+            className={cn(
+              "rounded-[calc(var(--radius)+2px)] px-3 py-2 text-sm font-medium transition",
+              loginMethod === "password"
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border/70"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Email + password
+          </button>
+          <button
+            type="button"
+            onClick={() => handleMethodChange("magic-link")}
+            aria-pressed={loginMethod === "magic-link"}
+            className={cn(
+              "rounded-[calc(var(--radius)+2px)] px-3 py-2 text-sm font-medium transition",
+              loginMethod === "magic-link"
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border/70"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Magic link
+          </button>
+        </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleLogin} className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="grid gap-2">
-            <div className="flex items-center justify-between">
-              <Label htmlFor="password">Password</Label>
-              <button
-                type="button"
-                onClick={handleMagicLink}
-                className="text-xs text-muted-foreground hover:text-primary"
-              >
-                Forgot password?
-              </button>
+        {loginMethod === "password" ? (
+          <form onSubmit={handleLogin} className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
             </div>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={8}
-              required
-            />
-          </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Enter your password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+            </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" disabled={formState === "loading"}>
-            {formState === "loading" ? "Logging in..." : "Log in"}
-          </Button>
-        </form>
+            <Button type="submit" disabled={formState === "loading"}>
+              {formState === "loading" ? "Logging in..." : "Log in"}
+            </Button>
+          </form>
+        ) : (
+          <form onSubmit={handleMagicLink} className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="magic-email">Email</Label>
+              <Input
+                id="magic-email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
 
-        <div className="relative my-6">
-          <Separator />
-          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-            or
-          </span>
-        </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={handleMagicLink}
-          disabled={formState === "loading"}
-        >
-          Sign in with magic link
-        </Button>
+            <Button type="submit" disabled={formState === "loading"}>
+              {formState === "loading" ? "Sending link..." : "Send magic link"}
+            </Button>
+          </form>
+        )}
       </CardContent>
       <CardFooter className="justify-center">
         <p className="text-sm text-muted-foreground">
           Don&apos;t have an account?{" "}
-          <Link href={inviteToken ? `/signup?invite=${inviteToken}` : "/signup"} className="text-primary hover:underline">
+          <Link
+            href={inviteToken ? `/signup?invite=${inviteToken}` : "/signup"}
+            className="text-primary hover:underline"
+          >
             Sign up
           </Link>
         </p>

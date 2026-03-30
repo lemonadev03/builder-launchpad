@@ -7,6 +7,7 @@ import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 import {
   Card,
   CardContent,
@@ -15,10 +16,10 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 
 type FormState = "idle" | "loading" | "magic-link-sent";
+type SignupMethod = "password" | "magic-link";
 
 interface InviteContext {
   communityName: string;
@@ -40,6 +41,7 @@ function SignupForm() {
   const inviteToken = searchParams.get("invite");
   const [formState, setFormState] = useState<FormState>("idle");
   const [error, setError] = useState<string | null>(null);
+  const [signupMethod, setSignupMethod] = useState<SignupMethod>("password");
   const [inviteContext, setInviteContext] = useState<InviteContext | null>(null);
 
   const [name, setName] = useState("");
@@ -99,9 +101,14 @@ function SignupForm() {
     setFormState("magic-link-sent");
   }
 
+  function handleMethodChange(method: SignupMethod) {
+    setSignupMethod(method);
+    setError(null);
+  }
+
   if (formState === "magic-link-sent") {
     return (
-      <Card>
+      <Card className="border-border/70 shadow-lg shadow-primary/5">
         <CardHeader className="text-center">
           <CardTitle className="text-xl">Check your email</CardTitle>
           <CardDescription>
@@ -119,8 +126,8 @@ function SignupForm() {
   }
 
   return (
-    <Card>
-      <CardHeader className="text-center">
+    <Card className="border-border/70 shadow-lg shadow-primary/5">
+      <CardHeader className="gap-2 text-center">
         {inviteContext ? (
           <>
             <div className="mx-auto mb-3">
@@ -139,80 +146,112 @@ function SignupForm() {
             <CardTitle className="text-xl">
               Join {inviteContext.communityName}
             </CardTitle>
-            <CardDescription>
-              Create an account to accept your invitation
-            </CardDescription>
           </>
         ) : (
           <>
             <CardTitle className="text-xl">Create your account</CardTitle>
-            <CardDescription>
-              Join Builder Launchpad to connect with communities
-            </CardDescription>
           </>
         )}
+        <div className="mt-2 grid grid-cols-2 gap-1 rounded-xl border border-border/70 bg-muted/60 p-1">
+          <button
+            type="button"
+            onClick={() => handleMethodChange("password")}
+            aria-pressed={signupMethod === "password"}
+            className={cn(
+              "rounded-[calc(var(--radius)+2px)] px-3 py-2 text-sm font-medium transition",
+              signupMethod === "password"
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border/70"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Email + password
+          </button>
+          <button
+            type="button"
+            onClick={() => handleMethodChange("magic-link")}
+            aria-pressed={signupMethod === "magic-link"}
+            className={cn(
+              "rounded-[calc(var(--radius)+2px)] px-3 py-2 text-sm font-medium transition",
+              signupMethod === "magic-link"
+                ? "bg-background text-foreground shadow-sm ring-1 ring-border/70"
+                : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Magic link
+          </button>
+        </div>
       </CardHeader>
       <CardContent>
-        <form onSubmit={handleSignup} className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="name">Name</Label>
-            <Input
-              id="name"
-              type="text"
-              placeholder="Your name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="email">Email</Label>
-            <Input
-              id="email"
-              type="email"
-              placeholder="you@example.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div className="grid gap-2">
-            <Label htmlFor="password">Password</Label>
-            <Input
-              id="password"
-              type="password"
-              placeholder="Min. 8 characters"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              minLength={8}
-              required
-            />
-          </div>
+        {signupMethod === "password" ? (
+          <form onSubmit={handleSignup} className="grid gap-4">
+            <div className="grid gap-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Your name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="email">Email</Label>
+              <Input
+                id="email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="password">Password</Label>
+              <Input
+                id="password"
+                type="password"
+                placeholder="Min. 8 characters"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                minLength={8}
+                required
+              />
+            </div>
 
-          {error && (
-            <p className="text-sm text-destructive">{error}</p>
-          )}
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
-          <Button type="submit" disabled={formState === "loading"}>
-            {formState === "loading" ? "Creating account..." : "Create account"}
-          </Button>
-        </form>
+            <Button type="submit" disabled={formState === "loading"}>
+              {formState === "loading" ? "Creating account..." : "Create account"}
+            </Button>
+          </form>
+        ) : (
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              void handleMagicLink();
+            }}
+            className="grid gap-4"
+          >
+            <div className="grid gap-2">
+              <Label htmlFor="magic-signup-email">Email</Label>
+              <Input
+                id="magic-signup-email"
+                type="email"
+                placeholder="you@example.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
 
-        <div className="relative my-6">
-          <Separator />
-          <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 bg-card px-2 text-xs text-muted-foreground">
-            or
-          </span>
-        </div>
+            {error && <p className="text-sm text-destructive">{error}</p>}
 
-        <Button
-          variant="outline"
-          className="w-full"
-          onClick={handleMagicLink}
-          disabled={formState === "loading"}
-        >
-          Sign up with magic link
-        </Button>
+            <Button type="submit" disabled={formState === "loading"}>
+              {formState === "loading" ? "Sending link..." : "Sign up with magic link"}
+            </Button>
+          </form>
+        )}
       </CardContent>
       <CardFooter className="justify-center">
         <p className="text-sm text-muted-foreground">
