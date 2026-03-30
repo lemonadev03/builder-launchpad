@@ -5,7 +5,7 @@ import {
   addBookmark,
   removeBookmark,
   isBookmarked,
-  getUserBookmarks,
+  getUserPostBookmarks,
 } from "@/lib/queries/bookmark";
 
 export async function POST(request: Request) {
@@ -88,7 +88,7 @@ export async function GET(request: Request) {
   );
   const offset = (page - 1) * limit;
 
-  const { bookmarks, total } = await getUserBookmarks(session.user.id, {
+  const { bookmarks, total } = await getUserPostBookmarks(session.user.id, {
     limit,
     offset,
   });

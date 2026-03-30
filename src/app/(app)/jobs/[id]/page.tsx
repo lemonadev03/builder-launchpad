@@ -12,8 +12,12 @@ import {
   Building2,
 } from "lucide-react";
 import { getJobById } from "@/lib/queries/job";
+import { isBookmarked } from "@/lib/queries/bookmark";
+import { getSession } from "@/lib/session";
 import { buttonVariants } from "@/components/ui/button-variants";
 import { Badge } from "@/components/ui/badge";
+import { BookmarkButton } from "@/components/bookmark-button";
+import { ApplyButton } from "@/components/apply-button";
 
 const typeLabel: Record<string, string> = {
   full_time: "Full-time",
@@ -44,9 +48,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
 export default async function JobDetailPage({ params }: Props) {
   const { id } = await params;
-  const job = await getJobById(id);
+  const [job, session] = await Promise.all([getJobById(id), getSession()]);
 
   if (!job) notFound();
+
+  const bookmarked = session
+    ? await isBookmarked(session.user.id, "listing", job.id)
+    : false;
 
   const postedDate = job.createdAt.toLocaleDateString("en-US", {
     year: "numeric",
@@ -125,17 +133,16 @@ export default async function JobDetailPage({ params }: Props) {
           </span>
         </div>
 
-        {/* Apply CTA */}
-        <div className="mt-6">
-          <a
-            href={job.applicationUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className={buttonVariants({ className: "gap-1.5" })}
-          >
-            Apply
-            <ExternalLink className="h-3.5 w-3.5" />
-          </a>
+        {/* Actions */}
+        <div className="mt-6 flex items-center gap-3">
+          <ApplyButton jobId={job.id} applicationUrl={job.applicationUrl} />
+          {session && (
+            <BookmarkButton
+              targetType="listing"
+              targetId={job.id}
+              bookmarked={bookmarked}
+            />
+          )}
         </div>
       </div>
 

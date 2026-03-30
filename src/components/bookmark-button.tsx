@@ -5,7 +5,7 @@ import { Bookmark } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 interface BookmarkButtonProps {
-  targetType: "post";
+  targetType: "post" | "listing";
   targetId: string;
   bookmarked: boolean;
 }

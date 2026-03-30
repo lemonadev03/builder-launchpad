@@ -7,7 +7,7 @@ export const reactionSchema = z.object({
 });
 
 export const bookmarkSchema = z.object({
-  targetType: z.enum(["post"]),
+  targetType: z.enum(["post", "listing"]),
   targetId: z.string().min(1),
 });
 

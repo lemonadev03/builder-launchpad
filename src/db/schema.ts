@@ -479,7 +479,7 @@ export const bookmark = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
-    targetType: text("target_type", { enum: ["post"] }).notNull(),
+    targetType: text("target_type", { enum: ["post", "listing"] }).notNull(),
     targetId: text("target_id").notNull(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
@@ -543,6 +543,7 @@ export const jobListing = pgTable(
       .defaultNow()
       .$onUpdate(() => new Date())
       .notNull(),
+    clickCount: integer("click_count").default(0).notNull(),
     archivedAt: timestamp("archived_at"),
   },
   (table) => [

@@ -1,10 +1,10 @@
 import { and, eq, desc, count as drizzleCount } from "drizzle-orm";
 import { db } from "@/db";
-import { bookmark, post, community, profile } from "@/db/schema";
+import { bookmark, post, community, profile, jobListing, company } from "@/db/schema";
 
 export async function addBookmark(
   userId: string,
-  targetType: "post",
+  targetType: "post" | "listing",
   targetId: string,
 ) {
   const [created] = await db
@@ -23,7 +23,7 @@ export async function addBookmark(
 
 export async function removeBookmark(
   userId: string,
-  targetType: "post",
+  targetType: "post" | "listing",
   targetId: string,
 ) {
   const [deleted] = await db
@@ -42,7 +42,7 @@ export async function removeBookmark(
 
 export async function isBookmarked(
   userId: string,
-  targetType: "post",
+  targetType: "post" | "listing",
   targetId: string,
 ): Promise<boolean> {
   const rows = await db
@@ -60,10 +60,15 @@ export async function isBookmarked(
   return rows.length > 0;
 }
 
-export async function getUserBookmarks(
+export async function getUserPostBookmarks(
   userId: string,
   opts: { limit: number; offset: number },
 ) {
+  const where = and(
+    eq(bookmark.userId, userId),
+    eq(bookmark.targetType, "post"),
+  );
+
   const bookmarks = await db
     .select({
       bookmarkId: bookmark.id,
@@ -85,7 +90,7 @@ export async function getUserBookmarks(
     .innerJoin(post, eq(bookmark.targetId, post.id))
     .innerJoin(community, eq(post.communityId, community.id))
     .innerJoin(profile, eq(post.authorId, profile.userId))
-    .where(eq(bookmark.userId, userId))
+    .where(where)
     .orderBy(desc(bookmark.createdAt))
     .limit(opts.limit)
     .offset(opts.offset);
@@ -93,7 +98,60 @@ export async function getUserBookmarks(
   const [totalRow] = await db
     .select({ count: drizzleCount() })
     .from(bookmark)
-    .where(eq(bookmark.userId, userId));
+    .where(where);
 
   return { bookmarks, total: totalRow?.count ?? 0 };
+}
+
+export async function getUserListingBookmarks(
+  userId: string,
+  opts: { limit: number; offset: number },
+) {
+  const where = and(
+    eq(bookmark.userId, userId),
+    eq(bookmark.targetType, "listing"),
+  );
+
+  const bookmarks = await db
+    .select({
+      bookmarkId: bookmark.id,
+      bookmarkCreatedAt: bookmark.createdAt,
+      targetType: bookmark.targetType,
+      targetId: bookmark.targetId,
+      jobId: jobListing.id,
+      jobTitle: jobListing.title,
+      jobDescription: jobListing.description,
+      jobLocation: jobListing.location,
+      jobRemote: jobListing.remote,
+      jobEmploymentType: jobListing.employmentType,
+      jobSalaryRange: jobListing.salaryRange,
+      jobApplicationUrl: jobListing.applicationUrl,
+      jobCreatedAt: jobListing.createdAt,
+      companyName: company.name,
+      companyLogoUrl: company.logoUrl,
+    })
+    .from(bookmark)
+    .innerJoin(jobListing, eq(bookmark.targetId, jobListing.id))
+    .innerJoin(company, eq(jobListing.companyId, company.id))
+    .where(where)
+    .orderBy(desc(bookmark.createdAt))
+    .limit(opts.limit)
+    .offset(opts.offset);
+
+  const [totalRow] = await db
+    .select({ count: drizzleCount() })
+    .from(bookmark)
+    .where(where);
+
+  return { bookmarks, total: totalRow?.count ?? 0 };
+}
+
+// Keep for backward compat — returns all bookmarks count
+export async function getUserBookmarkCount(userId: string): Promise<number> {
+  const [row] = await db
+    .select({ count: drizzleCount() })
+    .from(bookmark)
+    .where(eq(bookmark.userId, userId));
+
+  return row?.count ?? 0;
 }

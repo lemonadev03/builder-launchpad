@@ -88,6 +88,13 @@ export async function archiveJob(jobId: string) {
   return rows[0] ?? null;
 }
 
+export async function incrementClickCount(jobId: string) {
+  await db
+    .update(jobListing)
+    .set({ clickCount: sql`${jobListing.clickCount} + 1` })
+    .where(and(eq(jobListing.id, jobId), isNull(jobListing.archivedAt)));
+}
+
 // ── Queries ─────────────────────────────────────────────────────────
 
 export async function getJobById(jobId: string) {
