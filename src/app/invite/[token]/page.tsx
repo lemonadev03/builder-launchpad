@@ -4,7 +4,7 @@ import { Users } from "lucide-react";
 import { getSession } from "@/lib/session";
 import { getInviteByToken, redeemInvite } from "@/lib/queries/invite";
 import { getProfileByUserId } from "@/lib/queries/profile";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 import {
   Card,
   CardContent,

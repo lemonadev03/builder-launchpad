@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { UserX } from "lucide-react";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 
 export default function ProfileNotFound() {
   return (

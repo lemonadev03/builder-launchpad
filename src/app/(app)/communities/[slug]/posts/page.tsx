@@ -13,7 +13,7 @@ import { getSession } from "@/lib/session";
 import { PostCard } from "@/components/post-card";
 import { TagFilter } from "@/components/tag-filter";
 import { Pagination } from "@/components/pagination";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 
 interface Props {
   params: Promise<{ slug: string }>;

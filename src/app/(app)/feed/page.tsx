@@ -11,7 +11,7 @@ import { PostCard } from "@/components/post-card";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { FeedLoadMore } from "@/components/feed-load-more";
 import { FeedCommunityFilter } from "@/components/feed-community-filter";
-import { buttonVariants } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 
 export const metadata: Metadata = {
   title: "Feed | Builder Launchpad",
