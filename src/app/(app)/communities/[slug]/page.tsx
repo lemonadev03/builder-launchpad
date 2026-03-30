@@ -166,6 +166,16 @@ export default async function CommunityPage({ params }: Props) {
           </section>
         )}
 
+        {/* Members directory link */}
+        <div>
+          <Link
+            href={`/communities/${slug}/members`}
+            className="text-sm text-primary hover:underline"
+          >
+            View all members &rarr;
+          </Link>
+        </div>
+
         {/* Sub-communities */}
         <section>
           <div className="mb-2 flex items-center justify-between">
