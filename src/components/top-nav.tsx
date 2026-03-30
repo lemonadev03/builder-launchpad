@@ -14,6 +14,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { LogOut, Settings } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export function TopNav() {
   const router = useRouter();
@@ -70,6 +71,7 @@ export function TopNav() {
               <Settings className="mr-2 h-4 w-4" />
               Settings
             </DropdownMenuItem>
+            <ThemeToggle />
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout}>
               <LogOut className="mr-2 h-4 w-4" />
