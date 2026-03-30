@@ -1,6 +1,7 @@
 import { and, eq, desc, inArray, gte, lte } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
-import { post, comment, flag, moderationAction, profile } from "@/db/schema";
+import { community, post, comment, flag, moderationAction, profile } from "@/db/schema";
 import { count as drizzleCount } from "drizzle-orm";
 
 type ModerationActionType =
@@ -19,9 +20,28 @@ type ModerationActionType =
   | "restore_community"
   | "feature_community"
   | "unfeature_community"
+  | "warn_user_platform"
   | "suspend_user_platform"
   | "unsuspend_user_platform"
   | "soft_delete_user_platform";
+
+export const PLATFORM_MODERATION_ACTIONS = [
+  "hide_post",
+  "unhide_post",
+  "delete_post",
+  "hide_comment",
+  "unhide_comment",
+  "delete_comment",
+  "dismiss_flags",
+  "warn_member",
+  "suspend_member",
+  "unsuspend_member",
+  "remove_member",
+  "warn_user_platform",
+  "suspend_user_platform",
+  "unsuspend_user_platform",
+  "soft_delete_user_platform",
+] as const;
 
 export async function logModerationAction(data: {
   action: ModerationActionType;
@@ -190,4 +210,136 @@ export async function getModeratorList(communityIds: string[]) {
     .where(inArray(moderationAction.communityId, communityIds));
 
   return rows;
+}
+
+export async function getPlatformModerationLog(opts: {
+  limit: number;
+  offset: number;
+  action?: string;
+  moderatorId?: string;
+  communityId?: string;
+  dateFrom?: Date;
+  dateTo?: Date;
+}) {
+  const moderatorProfile = alias(profile, "moderator_profile");
+  const targetProfile = alias(profile, "target_profile");
+  const actionCommunity = alias(community, "action_community");
+
+  const conditions = [
+    inArray(
+      moderationAction.action,
+      [...PLATFORM_MODERATION_ACTIONS] as Array<
+        typeof moderationAction.action.enumValues[number]
+      >,
+    ),
+  ];
+
+  if (opts.action) {
+    conditions.push(
+      eq(
+        moderationAction.action,
+        opts.action as typeof moderationAction.action.enumValues[number],
+      ),
+    );
+  }
+  if (opts.moderatorId) {
+    conditions.push(eq(moderationAction.moderatorId, opts.moderatorId));
+  }
+  if (opts.communityId) {
+    conditions.push(eq(moderationAction.communityId, opts.communityId));
+  }
+  if (opts.dateFrom) {
+    conditions.push(gte(moderationAction.createdAt, opts.dateFrom));
+  }
+  if (opts.dateTo) {
+    conditions.push(lte(moderationAction.createdAt, opts.dateTo));
+  }
+
+  const where = and(...conditions);
+
+  const actions = await db
+    .select({
+      id: moderationAction.id,
+      action: moderationAction.action,
+      targetType: moderationAction.targetType,
+      targetId: moderationAction.targetId,
+      reason: moderationAction.reason,
+      createdAt: moderationAction.createdAt,
+      communityId: moderationAction.communityId,
+      communityName: actionCommunity.name,
+      moderatorId: moderationAction.moderatorId,
+      moderatorDisplayName: moderatorProfile.displayName,
+      moderatorUsername: moderatorProfile.username,
+      targetUserId: moderationAction.targetUserId,
+      targetDisplayName: targetProfile.displayName,
+      targetUsername: targetProfile.username,
+    })
+    .from(moderationAction)
+    .innerJoin(
+      moderatorProfile,
+      eq(moderationAction.moderatorId, moderatorProfile.userId),
+    )
+    .leftJoin(actionCommunity, eq(moderationAction.communityId, actionCommunity.id))
+    .leftJoin(targetProfile, eq(moderationAction.targetUserId, targetProfile.userId))
+    .where(where)
+    .orderBy(desc(moderationAction.createdAt))
+    .limit(opts.limit)
+    .offset(opts.offset);
+
+  const [totalRow] = await db
+    .select({ count: drizzleCount() })
+    .from(moderationAction)
+    .where(where);
+
+  return { actions, total: totalRow?.count ?? 0 };
+}
+
+export async function getPlatformModerators(opts?: { communityId?: string }) {
+  const moderatorProfile = alias(profile, "moderator_profile");
+  const conditions = [
+    inArray(
+      moderationAction.action,
+      [...PLATFORM_MODERATION_ACTIONS] as Array<
+        typeof moderationAction.action.enumValues[number]
+      >,
+    ),
+  ];
+
+  if (opts?.communityId) {
+    conditions.push(eq(moderationAction.communityId, opts.communityId));
+  }
+
+  return db
+    .selectDistinct({
+      moderatorId: moderationAction.moderatorId,
+      displayName: moderatorProfile.displayName,
+      username: moderatorProfile.username,
+    })
+    .from(moderationAction)
+    .innerJoin(
+      moderatorProfile,
+      eq(moderationAction.moderatorId, moderatorProfile.userId),
+    )
+    .where(and(...conditions));
+}
+
+export async function getPlatformModerationCommunities() {
+  const actionCommunity = alias(community, "action_community");
+
+  return db
+    .selectDistinct({
+      id: actionCommunity.id,
+      name: actionCommunity.name,
+      slug: actionCommunity.slug,
+    })
+    .from(moderationAction)
+    .innerJoin(actionCommunity, eq(moderationAction.communityId, actionCommunity.id))
+    .where(
+      inArray(
+        moderationAction.action,
+        [...PLATFORM_MODERATION_ACTIONS] as Array<
+          typeof moderationAction.action.enumValues[number]
+        >,
+      ),
+    );
 }

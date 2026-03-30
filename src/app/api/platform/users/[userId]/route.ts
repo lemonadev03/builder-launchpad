@@ -58,6 +58,19 @@ export async function PATCH(request: Request, { params }: Props) {
     );
   }
 
+  if (parsed.data.action === "warn") {
+    await logModerationAction({
+      action: "warn_user_platform",
+      moderatorId: session.user.id,
+      targetType: "user",
+      targetId: userId,
+      targetUserId: userId,
+      reason: parsed.data.reason,
+    });
+
+    return NextResponse.json({ success: true });
+  }
+
   if (parsed.data.action === "suspend") {
     if (target.suspendedAt) {
       return NextResponse.json(
@@ -77,6 +90,7 @@ export async function PATCH(request: Request, { params }: Props) {
       targetType: "user",
       targetId: userId,
       targetUserId: userId,
+      reason: parsed.data.reason,
     });
 
     return NextResponse.json({ user: updated });
@@ -100,6 +114,7 @@ export async function PATCH(request: Request, { params }: Props) {
     targetType: "user",
     targetId: userId,
     targetUserId: userId,
+    reason: parsed.data.reason,
   });
 
   return NextResponse.json({ user: updated });

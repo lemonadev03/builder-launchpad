@@ -471,6 +471,7 @@ export const moderationAction = pgTable(
         "restore_community",
         "feature_community",
         "unfeature_community",
+        "warn_user_platform",
         "suspend_user_platform",
         "unsuspend_user_platform",
         "soft_delete_user_platform",

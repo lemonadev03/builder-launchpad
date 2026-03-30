@@ -1,6 +1,15 @@
-import { and, eq, desc, count as drizzleCount, gte, inArray } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  count as drizzleCount,
+  eq,
+  gte,
+  inArray,
+  lte,
+} from "drizzle-orm";
 import { db } from "@/db";
-import { flag, post, comment, profile, community } from "@/db/schema";
+import { flag, post, comment, profile, community, user } from "@/db/schema";
 
 export async function createFlag(
   userId: string,
@@ -175,6 +184,90 @@ export async function getFlagsByCommunity(
   return { flags, total: totalRow?.count ?? 0 };
 }
 
+export async function getPlatformFlags(opts: {
+  status?: "open" | "resolved" | "dismissed";
+  communityId?: string;
+  reason?: "spam" | "harassment" | "off_topic" | "other";
+  dateFrom?: Date;
+  dateTo?: Date;
+  limit: number;
+  offset: number;
+}) {
+  const conditions = [];
+
+  if (opts.status) {
+    conditions.push(eq(flag.status, opts.status));
+  }
+  if (opts.communityId) {
+    conditions.push(eq(flag.communityId, opts.communityId));
+  }
+  if (opts.reason) {
+    conditions.push(eq(flag.reason, opts.reason));
+  }
+  if (opts.dateFrom) {
+    conditions.push(gte(flag.createdAt, opts.dateFrom));
+  }
+  if (opts.dateTo) {
+    conditions.push(lte(flag.createdAt, opts.dateTo));
+  }
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const flags = await db
+    .select({
+      id: flag.id,
+      targetType: flag.targetType,
+      targetId: flag.targetId,
+      reason: flag.reason,
+      description: flag.description,
+      status: flag.status,
+      communityId: flag.communityId,
+      createdAt: flag.createdAt,
+      resolvedAt: flag.resolvedAt,
+      reporterDisplayName: profile.displayName,
+      reporterUsername: profile.username,
+      reporterAvatarUrl: profile.avatarUrl,
+      communityName: community.name,
+      communitySlug: community.slug,
+    })
+    .from(flag)
+    .innerJoin(profile, eq(flag.userId, profile.userId))
+    .innerJoin(community, eq(flag.communityId, community.id))
+    .where(where)
+    .orderBy(desc(flag.createdAt))
+    .limit(opts.limit)
+    .offset(opts.offset);
+
+  const [totalRow] = await db
+    .select({ count: drizzleCount() })
+    .from(flag)
+    .where(where);
+
+  return { flags, total: totalRow?.count ?? 0 };
+}
+
+export async function listCommunitiesWithOpenFlags() {
+  return db
+    .selectDistinct({
+      id: community.id,
+      name: community.name,
+      slug: community.slug,
+    })
+    .from(flag)
+    .innerJoin(community, eq(flag.communityId, community.id))
+    .where(eq(flag.status, "open"))
+    .orderBy(asc(community.name));
+}
+
+export async function getPlatformOpenFlagCount(): Promise<number> {
+  const [row] = await db
+    .select({ count: drizzleCount() })
+    .from(flag)
+    .where(eq(flag.status, "open"));
+
+  return row?.count ?? 0;
+}
+
 export async function getOpenFlagCount(communityIds: string[]): Promise<number> {
   if (communityIds.length === 0) return 0;
 
@@ -189,7 +282,23 @@ export async function getOpenFlagCount(communityIds: string[]): Promise<number> 
 }
 
 export async function getFlaggedPostPreviewsBatch(postIds: string[]) {
-  if (postIds.length === 0) return new Map<string, { id: string; title: string; slug: string; excerpt: string | null; communitySlug: string; authorDisplayName: string }>();
+  if (postIds.length === 0) {
+    return new Map<
+      string,
+      {
+        id: string;
+        title: string;
+        slug: string;
+        excerpt: string | null;
+        communitySlug: string;
+        authorDisplayName: string;
+        authorUserId: string;
+        isPlatformAdmin: boolean;
+        authorSuspendedAt: Date | null;
+        authorDeletedAt: Date | null;
+      }
+    >();
+  }
 
   const rows = await db
     .select({
@@ -199,10 +308,15 @@ export async function getFlaggedPostPreviewsBatch(postIds: string[]) {
       excerpt: post.excerpt,
       communitySlug: community.slug,
       authorDisplayName: profile.displayName,
+      authorUserId: post.authorId,
+      isPlatformAdmin: user.isPlatformAdmin,
+      authorSuspendedAt: user.suspendedAt,
+      authorDeletedAt: user.deletedAt,
     })
     .from(post)
     .innerJoin(community, eq(post.communityId, community.id))
     .innerJoin(profile, eq(post.authorId, profile.userId))
+    .innerJoin(user, eq(post.authorId, user.id))
     .where(inArray(post.id, postIds));
 
   const map = new Map<string, (typeof rows)[0]>();
@@ -213,7 +327,23 @@ export async function getFlaggedPostPreviewsBatch(postIds: string[]) {
 }
 
 export async function getFlaggedCommentPreviewsBatch(commentIds: string[]) {
-  if (commentIds.length === 0) return new Map<string, { id: string; content: unknown; postSlug: string; postTitle: string; communitySlug: string; authorDisplayName: string }>();
+  if (commentIds.length === 0) {
+    return new Map<
+      string,
+      {
+        id: string;
+        content: unknown;
+        postSlug: string;
+        postTitle: string;
+        communitySlug: string;
+        authorDisplayName: string;
+        authorUserId: string;
+        isPlatformAdmin: boolean;
+        authorSuspendedAt: Date | null;
+        authorDeletedAt: Date | null;
+      }
+    >();
+  }
 
   const rows = await db
     .select({
@@ -223,11 +353,16 @@ export async function getFlaggedCommentPreviewsBatch(commentIds: string[]) {
       postTitle: post.title,
       communitySlug: community.slug,
       authorDisplayName: profile.displayName,
+      authorUserId: comment.authorId,
+      isPlatformAdmin: user.isPlatformAdmin,
+      authorSuspendedAt: user.suspendedAt,
+      authorDeletedAt: user.deletedAt,
     })
     .from(comment)
     .innerJoin(post, eq(comment.postId, post.id))
     .innerJoin(community, eq(post.communityId, community.id))
     .innerJoin(profile, eq(comment.authorId, profile.userId))
+    .innerJoin(user, eq(comment.authorId, user.id))
     .where(inArray(comment.id, commentIds));
 
   const map = new Map<string, (typeof rows)[0]>();

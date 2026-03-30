@@ -15,6 +15,13 @@ interface Props {
   params: Promise<{ userId: string }>;
 }
 
+const ACTION_LABELS: Record<string, string> = {
+  warn_user_platform: "Warned user",
+  suspend_user_platform: "Suspended user",
+  unsuspend_user_platform: "Unsuspended user",
+  soft_delete_user_platform: "Soft-deleted user",
+};
+
 export default async function PlatformUserDetailPage({ params }: Props) {
   const { userId } = await params;
   const user = await getPlatformUserDetail(userId);
@@ -308,7 +315,9 @@ export default async function PlatformUserDetailPage({ params }: Props) {
                 <div className="space-y-3">
                   {actionLog.map((entry) => (
                     <div key={entry.id} className="rounded-lg border px-3 py-3">
-                      <p className="text-sm font-medium">{entry.action}</p>
+                      <p className="text-sm font-medium">
+                        {ACTION_LABELS[entry.action] ?? entry.action}
+                      </p>
                       <p className="text-xs text-muted-foreground">
                         {entry.createdAt.toLocaleDateString(undefined, {
                           month: "short",
