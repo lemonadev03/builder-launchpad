@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { NAV_ITEMS } from "@/lib/nav";
+import { NAV_ITEMS, type NavItem } from "@/lib/nav";
 import { authClient } from "@/lib/auth-client";
 import { useSession } from "@/components/auth-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,7 +17,12 @@ import {
 import { LogOut, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
-export function Sidebar() {
+interface SidebarProps {
+  items?: NavItem[];
+  header?: React.ReactNode;
+}
+
+export function Sidebar({ items = NAV_ITEMS, header }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();
@@ -41,20 +46,25 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex md:w-56 md:flex-col md:border-r md:border-border">
       <div className="p-3">
-        <Link href="/feed" className="flex items-center gap-2 px-3 py-2">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
-            <span className="text-xs font-bold text-primary-foreground">
-              BL
-            </span>
-          </div>
-          <span className="text-sm font-semibold">Builder Launchpad</span>
-        </Link>
+        {header ?? (
+          <Link href="/feed" className="flex items-center gap-2 px-3 py-2">
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary">
+              <span className="text-xs font-bold text-primary-foreground">
+                BL
+              </span>
+            </div>
+            <span className="text-sm font-semibold">Builder Launchpad</span>
+          </Link>
+        )}
       </div>
 
       <nav className="flex flex-1 flex-col gap-1 p-3">
-        {NAV_ITEMS.map((item) => {
+        {items.map((item) => {
           const isActive =
-            pathname === item.href || pathname.startsWith(item.href + "/");
+            item.href === "/platform"
+              ? pathname === item.href
+              : pathname === item.href ||
+                pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}

@@ -1,10 +1,21 @@
 import { Sidebar } from "@/components/sidebar";
 import { BottomNav } from "@/components/bottom-nav";
+import type { NavItem } from "@/lib/nav";
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+interface AppShellProps {
+  children: React.ReactNode;
+  sidebarItems?: NavItem[];
+  sidebarHeader?: React.ReactNode;
+}
+
+export function AppShell({
+  children,
+  sidebarItems,
+  sidebarHeader,
+}: AppShellProps) {
   return (
     <div className="flex h-screen">
-      <Sidebar />
+      <Sidebar items={sidebarItems} header={sidebarHeader} />
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
         <div className="mx-auto max-w-5xl px-4 py-6">{children}</div>
       </main>

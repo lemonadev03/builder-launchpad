@@ -10,6 +10,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { PlatformCommunityActions } from "@/components/platform-community-actions";
 import { PlatformCommunityFilters } from "@/components/platform-community-filters";
+import { PlatformCreateCommunity } from "@/components/platform-create-community";
 import { getPlatformCommunities } from "@/lib/queries/community";
 
 interface Props {
@@ -92,8 +93,11 @@ export default async function PlatformCommunitiesPage({ searchParams }: Props) {
                 run archive or feature actions.
               </CardDescription>
             </div>
-            <div className="text-sm text-muted-foreground">
-              {total} communit{total === 1 ? "y" : "ies"}
+            <div className="flex items-center gap-3">
+              <span className="text-sm text-muted-foreground">
+                {total} communit{total === 1 ? "y" : "ies"}
+              </span>
+              <PlatformCreateCommunity />
             </div>
           </div>
         </CardHeader>
