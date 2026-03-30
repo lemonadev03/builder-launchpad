@@ -552,3 +552,39 @@ export const jobListing = pgTable(
     index("job_listing_employment_type_idx").on(table.employmentType),
   ],
 );
+
+// ── Sister Links (cross-tree community affiliations) ──────────────
+
+export const sisterLink = pgTable(
+  "sister_link",
+  {
+    id: text("id").primaryKey(),
+    // Canonical order: communityAId < communityBId to prevent duplicates
+    communityAId: text("community_a_id")
+      .notNull()
+      .references(() => community.id, { onDelete: "cascade" }),
+    communityBId: text("community_b_id")
+      .notNull()
+      .references(() => community.id, { onDelete: "cascade" }),
+    status: text("status", { enum: ["pending", "active"] })
+      .default("pending")
+      .notNull(),
+    // Which community initiated the request
+    requestedCommunityId: text("requested_community_id")
+      .notNull()
+      .references(() => community.id, { onDelete: "cascade" }),
+    requestedBy: text("requested_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    unique("sister_link_communities_uniq").on(
+      table.communityAId,
+      table.communityBId,
+    ),
+    index("sister_link_a_idx").on(table.communityAId),
+    index("sister_link_b_idx").on(table.communityBId),
+    index("sister_link_status_idx").on(table.status),
+  ],
+);
