@@ -2,7 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, LayoutDashboard, Shield, Tags, Users } from "lucide-react";
+import {
+  Building2,
+  LayoutDashboard,
+  Settings2,
+  Shield,
+  Users,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const PLATFORM_NAV_ITEMS = [
@@ -22,9 +28,9 @@ const PLATFORM_NAV_ITEMS = [
     icon: Users,
   },
   {
-    label: "Tags",
-    href: "/platform/tags",
-    icon: Tags,
+    label: "Settings",
+    href: "/platform/settings",
+    icon: Settings2,
   },
   {
     label: "Moderation",

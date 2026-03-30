@@ -1,8 +1,8 @@
 import Link from "next/link";
 import {
   Building2,
+  Settings2,
   Shield,
-  Tags,
   Users,
 } from "lucide-react";
 import {
@@ -42,10 +42,10 @@ const SECTIONS = [
     ticket: "15.4",
   },
   {
-    title: "Tags",
-    href: "/platform/tags",
-    description: "Manage the platform-wide profile tags catalog.",
-    icon: Tags,
+    title: "Settings",
+    href: "/platform/settings",
+    description: "Manage the platform-wide profile tags catalog and shared stats.",
+    icon: Settings2,
     ticket: "15.5",
   },
 ];

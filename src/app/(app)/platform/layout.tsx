@@ -22,7 +22,7 @@ export default async function PlatformLayout({
           </h1>
           <p className="mt-2 max-w-2xl text-sm text-muted-foreground">
             Manage Builder Launchpad at the platform layer across communities,
-            users, moderation, and tags.
+            users, moderation, and settings.
           </p>
         </div>
       </div>
