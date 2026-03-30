@@ -42,6 +42,14 @@ export function FlagButton({
   const [flagged, setFlagged] = useState(initialFlagged);
   const [isPending, startTransition] = useTransition();
 
+  function handleOpenChange(next: boolean) {
+    setOpen(next);
+    if (!next) {
+      setReason("");
+      setDescription("");
+    }
+  }
+
   function handleSubmit() {
     if (!reason) return;
 
@@ -82,7 +90,7 @@ export function FlagButton({
   }
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
+    <Dialog open={open} onOpenChange={handleOpenChange}>
       <DialogTrigger
         className={cn(
           "inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs text-muted-foreground transition-colors hover:text-foreground",

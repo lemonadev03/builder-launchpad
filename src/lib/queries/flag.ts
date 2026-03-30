@@ -188,8 +188,10 @@ export async function getOpenFlagCount(communityIds: string[]): Promise<number> 
   return row?.count ?? 0;
 }
 
-export async function getFlaggedPostPreview(postId: string) {
-  const [row] = await db
+export async function getFlaggedPostPreviewsBatch(postIds: string[]) {
+  if (postIds.length === 0) return new Map<string, { id: string; title: string; slug: string; excerpt: string | null; communitySlug: string; authorDisplayName: string }>();
+
+  const rows = await db
     .select({
       id: post.id,
       title: post.title,
@@ -201,14 +203,19 @@ export async function getFlaggedPostPreview(postId: string) {
     .from(post)
     .innerJoin(community, eq(post.communityId, community.id))
     .innerJoin(profile, eq(post.authorId, profile.userId))
-    .where(eq(post.id, postId))
-    .limit(1);
+    .where(inArray(post.id, postIds));
 
-  return row ?? null;
+  const map = new Map<string, (typeof rows)[0]>();
+  for (const row of rows) {
+    map.set(row.id, row);
+  }
+  return map;
 }
 
-export async function getFlaggedCommentPreview(commentId: string) {
-  const [row] = await db
+export async function getFlaggedCommentPreviewsBatch(commentIds: string[]) {
+  if (commentIds.length === 0) return new Map<string, { id: string; content: unknown; postSlug: string; postTitle: string; communitySlug: string; authorDisplayName: string }>();
+
+  const rows = await db
     .select({
       id: comment.id,
       content: comment.content,
@@ -221,8 +228,11 @@ export async function getFlaggedCommentPreview(commentId: string) {
     .innerJoin(post, eq(comment.postId, post.id))
     .innerJoin(community, eq(post.communityId, community.id))
     .innerJoin(profile, eq(comment.authorId, profile.userId))
-    .where(eq(comment.id, commentId))
-    .limit(1);
+    .where(inArray(comment.id, commentIds));
 
-  return row ?? null;
+  const map = new Map<string, (typeof rows)[0]>();
+  for (const row of rows) {
+    map.set(row.id, row);
+  }
+  return map;
 }

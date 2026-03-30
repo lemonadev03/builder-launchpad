@@ -132,6 +132,14 @@ export async function POST(
     }
 
     case "remove": {
+      // Remove requires admin permission, not just moderator
+      const removeCheck = await requireCommunityPermission(
+        session.user.id,
+        community.id,
+        "member.remove",
+      );
+      if (removeCheck) return removeCheck;
+
       await db.delete(membership).where(eq(membership.id, mem.id));
       await logModerationAction({
         action: "remove_member",

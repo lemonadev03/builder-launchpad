@@ -59,27 +59,23 @@ export function DirectoryFilters({
     [router, searchParams],
   );
 
-  // Debounced search
+  // Debounced search + location (single effect to avoid race condition)
   useEffect(() => {
     const timer = setTimeout(() => {
-      const current = searchParams.get("q") ?? "";
-      if (search !== current) {
-        updateParams({ q: search || null });
-      }
-    }, 300);
-    return () => clearTimeout(timer);
-  }, [search, searchParams, updateParams]);
+      const currentSearch = searchParams.get("q") ?? "";
+      const currentLocation = searchParams.get("location") ?? "";
+      const searchChanged = search !== currentSearch;
+      const locationChanged = location !== currentLocation;
 
-  // Debounced location
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      const current = searchParams.get("location") ?? "";
-      if (location !== current) {
-        updateParams({ location: location || null });
+      if (searchChanged || locationChanged) {
+        updateParams({
+          q: search || null,
+          location: location || null,
+        });
       }
     }, 300);
     return () => clearTimeout(timer);
-  }, [location, searchParams, updateParams]);
+  }, [search, location, searchParams, updateParams]);
 
   function toggleTag(slug: string) {
     const next = selectedTags.includes(slug)

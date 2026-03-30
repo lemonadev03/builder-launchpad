@@ -2,11 +2,15 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requireApiAuth } from "@/lib/api-auth";
 import { getCommunityBySlug } from "@/lib/queries/community";
+import { getAllDescendants } from "@/lib/queries/community-tree";
 import { requireCommunityPermission } from "@/lib/permissions";
 import { getPostById } from "@/lib/queries/post";
 import { getCommentById } from "@/lib/queries/comment";
 import { archivePost } from "@/lib/queries/post";
 import { softDeleteComment } from "@/lib/queries/comment";
+import { db } from "@/db";
+import { eq } from "drizzle-orm";
+import { post } from "@/db/schema";
 import {
   hidePost,
   unhidePost,
@@ -69,11 +73,20 @@ export async function POST(
 
   const { action, targetType, targetId, reason } = parsed.data;
 
-  // Verify target exists
+  // Verify target exists and belongs to this community (or its descendants)
+  const descendants = await getAllDescendants(community.id);
+  const allowedCommunityIds = new Set([
+    community.id,
+    ...descendants.map((d) => d.id),
+  ]);
+
   if (targetType === "post") {
     const p = await getPostById(targetId);
     if (!p) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
+    }
+    if (!allowedCommunityIds.has(p.communityId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   } else {
     const c = await getCommentById(targetId);
@@ -82,6 +95,15 @@ export async function POST(
         { error: "Comment not found" },
         { status: 404 },
       );
+    }
+    // Check community via the comment's post
+    const [postRow] = await db
+      .select({ communityId: post.communityId })
+      .from(post)
+      .where(eq(post.id, c.postId))
+      .limit(1);
+    if (!postRow || !allowedCommunityIds.has(postRow.communityId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
   }
 

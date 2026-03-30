@@ -52,8 +52,9 @@ export async function POST(request: Request) {
     );
   }
 
-  // Resolve communityId from target
+  // Resolve communityId + authorId from target
   let communityId: string | null = null;
+  let authorId: string | null = null;
 
   if (targetType === "post") {
     const p = await getPostById(targetId);
@@ -61,6 +62,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Post not found" }, { status: 404 });
     }
     communityId = p.communityId;
+    authorId = p.authorId;
   } else {
     const c = await getCommentById(targetId);
     if (!c) {
@@ -69,6 +71,7 @@ export async function POST(request: Request) {
         { status: 404 },
       );
     }
+    authorId = c.authorId;
     // Get communityId via the comment's post
     const [postRow] = await db
       .select({ communityId: post.communityId })
@@ -85,15 +88,12 @@ export async function POST(request: Request) {
     );
   }
 
-  // Prevent self-flagging
-  if (targetType === "post") {
-    const p = await getPostById(targetId);
-    if (p?.authorId === session.user.id) {
-      return NextResponse.json(
-        { error: "You cannot flag your own content." },
-        { status: 400 },
-      );
-    }
+  // Prevent self-flagging (posts and comments)
+  if (authorId === session.user.id) {
+    return NextResponse.json(
+      { error: "You cannot flag your own content." },
+      { status: 400 },
+    );
   }
 
   const created = await createFlag(

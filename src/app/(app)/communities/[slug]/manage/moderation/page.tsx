@@ -8,8 +8,8 @@ import { hasPermission } from "@/lib/permissions";
 import {
   getFlagsByCommunity,
   getOpenFlagCount,
-  getFlaggedPostPreview,
-  getFlaggedCommentPreview,
+  getFlaggedPostPreviewsBatch,
+  getFlaggedCommentPreviewsBatch,
 } from "@/lib/queries/flag";
 import { getSuspendedMembers } from "@/lib/queries/membership";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -74,18 +74,26 @@ export default async function ModerationPage({ params, searchParams }: Props) {
       getSuspendedMembers(allCommunityIds),
     ]);
 
-  // Enrich flags with target previews
-  const enrichedFlags = await Promise.all(
-    flags.map(async (f) => {
-      if (f.targetType === "post") {
-        const preview = await getFlaggedPostPreview(f.targetId);
-        return { ...f, preview };
-      } else {
-        const preview = await getFlaggedCommentPreview(f.targetId);
-        return { ...f, preview };
-      }
-    }),
-  );
+  // Batch-fetch previews (2 queries instead of N)
+  const postFlagIds = flags
+    .filter((f) => f.targetType === "post")
+    .map((f) => f.targetId);
+  const commentFlagIds = flags
+    .filter((f) => f.targetType === "comment")
+    .map((f) => f.targetId);
+
+  const [postPreviews, commentPreviews] = await Promise.all([
+    getFlaggedPostPreviewsBatch(postFlagIds),
+    getFlaggedCommentPreviewsBatch(commentFlagIds),
+  ]);
+
+  const enrichedFlags = flags.map((f) => ({
+    ...f,
+    preview:
+      f.targetType === "post"
+        ? postPreviews.get(f.targetId) ?? null
+        : commentPreviews.get(f.targetId) ?? null,
+  }));
 
   return (
     <div>
