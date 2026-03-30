@@ -1,7 +1,11 @@
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { ArrowRight } from "lucide-react";
+import { getSession } from "@/lib/session";
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const session = await getSession();
+  if (session) redirect("/feed");
   return (
     <div className="flex min-h-svh flex-col bg-[oklch(0.07_0.01_260)]">
       {/* Nav */}
