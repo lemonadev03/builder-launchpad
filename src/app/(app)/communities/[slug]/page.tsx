@@ -6,6 +6,7 @@ import { getCommunityBySlug } from "@/lib/queries/community";
 import { getMembership } from "@/lib/queries/membership";
 import { getUserJoinRequestStatus } from "@/lib/queries/join-request";
 import { getAncestorChain, getChildCommunities } from "@/lib/queries/community-tree";
+import { getAllSisterLinks } from "@/lib/queries/sister";
 import { getRecentPostsByCommunity } from "@/lib/queries/post";
 import { getReactionCountsBatch } from "@/lib/queries/reaction";
 import { getCommentCountsBatch } from "@/lib/queries/comment";
@@ -77,11 +78,14 @@ export default async function CommunityPage({ params }: Props) {
   }
 
   // Fetch hierarchy data + recent posts
-  const [ancestors, children, recentPosts] = await Promise.all([
+  const [ancestors, children, recentPosts, allSisters] = await Promise.all([
     c.parentId ? getAncestorChain(c.id) : [],
     getChildCommunities(c.id),
     getRecentPostsByCommunity(c.id, 3),
+    getAllSisterLinks(c.id),
   ]);
+
+  const activeSisters = allSisters.filter((s) => s.status === "active");
 
   // Engagement counts for recent posts
   const recentPostIds = recentPosts.map((p) => p.id);
@@ -236,6 +240,52 @@ export default async function CommunityPage({ params }: Props) {
             </div>
           )}
         </section>
+
+        {/* Sister Communities */}
+        {activeSisters.length > 0 && (
+          <section>
+            <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
+              Sister Communities ({activeSisters.length})
+            </h2>
+            <div className="space-y-2">
+              {activeSisters.map((s) => (
+                <Link
+                  key={s.linkId}
+                  href={`/communities/${s.communitySlug}`}
+                  className="flex items-center gap-3 rounded-lg border px-3 py-2.5 transition-colors hover:bg-muted/50"
+                >
+                  <div className="flex h-8 w-8 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary">
+                    {s.communityLogoUrl ? (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img
+                        src={s.communityLogoUrl}
+                        alt={s.communityName}
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-[10px] font-bold text-white">
+                        {s.communityName.slice(0, 2).toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-medium">
+                      {s.communityName}
+                    </p>
+                  </div>
+                  <Badge
+                    variant="outline"
+                    className="shrink-0 text-[10px]"
+                  >
+                    {s.inherited
+                      ? `Via ${s.inheritedFromName}`
+                      : "Direct"}
+                  </Badge>
+                </Link>
+              ))}
+            </div>
+          </section>
+        )}
 
         {/* Recent Posts */}
         {recentPosts.length > 0 && (
