@@ -5,11 +5,10 @@ import {
   desc,
   count,
   ilike,
-  inArray,
   sql,
 } from "drizzle-orm";
 import { db } from "@/db";
-import { jobListing, company, user } from "@/db/schema";
+import { jobListing, company } from "@/db/schema";
 import type { CreateJobInput, UpdateJobInput } from "@/lib/validations/job";
 
 // ── Types ───────────────────────────────────────────────────────────
@@ -31,6 +30,7 @@ export type JobListingWithCompany = {
   companyName: string;
   companyLogoUrl: string | null;
   companyWebsite: string | null;
+  companyDescription: string | null;
 };
 
 // ── Mutations ───────────────────────────────────────────────────────
@@ -109,6 +109,7 @@ export async function getJobById(jobId: string) {
       companyName: company.name,
       companyLogoUrl: company.logoUrl,
       companyWebsite: company.website,
+      companyDescription: company.description,
     })
     .from(jobListing)
     .innerJoin(company, eq(jobListing.companyId, company.id))
@@ -178,6 +179,7 @@ export async function getActiveJobs(opts: JobListOpts) {
       companyName: company.name,
       companyLogoUrl: company.logoUrl,
       companyWebsite: company.website,
+      companyDescription: company.description,
     })
     .from(jobListing)
     .innerJoin(company, eq(jobListing.companyId, company.id))
@@ -236,6 +238,7 @@ export async function getJobsByPoster(
       companyName: company.name,
       companyLogoUrl: company.logoUrl,
       companyWebsite: company.website,
+      companyDescription: company.description,
     })
     .from(jobListing)
     .innerJoin(company, eq(jobListing.companyId, company.id))

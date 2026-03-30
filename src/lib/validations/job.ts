@@ -1,17 +1,21 @@
 import { z } from "zod";
 
+const httpUrl = z
+  .string()
+  .trim()
+  .url()
+  .refine(
+    (url) => url.startsWith("http://") || url.startsWith("https://"),
+    "URL must start with http:// or https://",
+  );
+
 export const companyProfileSchema = z.object({
   name: z
     .string()
     .trim()
     .min(1, "Company name is required")
     .max(200, "Company name must be at most 200 characters"),
-  website: z
-    .string()
-    .trim()
-    .url("Website must be a valid URL")
-    .max(500)
-    .optional(),
+  website: httpUrl.pipe(z.string().max(500)).optional(),
   description: z
     .string()
     .trim()
@@ -59,11 +63,7 @@ export const createJobSchema = z.object({
     .trim()
     .max(100, "Salary range must be at most 100 characters")
     .optional(),
-  applicationUrl: z
-    .string()
-    .trim()
-    .url("Application URL must be a valid URL")
-    .max(500, "URL must be at most 500 characters"),
+  applicationUrl: httpUrl.pipe(z.string().max(500, "URL must be at most 500 characters")),
 });
 
 export const updateJobSchema = z.object({
@@ -98,12 +98,7 @@ export const updateJobSchema = z.object({
     .trim()
     .max(100, "Salary range must be at most 100 characters")
     .optional(),
-  applicationUrl: z
-    .string()
-    .trim()
-    .url("Application URL must be a valid URL")
-    .max(500, "URL must be at most 500 characters")
-    .optional(),
+  applicationUrl: httpUrl.pipe(z.string().max(500, "URL must be at most 500 characters")).optional(),
 });
 
 export type CreateJobInput = z.infer<typeof createJobSchema>;
