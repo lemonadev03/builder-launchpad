@@ -76,7 +76,7 @@ export async function getDirectoryProfiles(opts: DirectoryOpts) {
         sql`${profile.id} IN (
           SELECT ${profileTag.profileId}
           FROM ${profileTag}
-          WHERE ${profileTag.tagId} = ANY(${tagIds})
+          WHERE ${inArray(profileTag.tagId, tagIds)}
           GROUP BY ${profileTag.profileId}
           HAVING COUNT(DISTINCT ${profileTag.tagId}) = ${tagIds.length}
         )`,
@@ -137,7 +137,7 @@ export async function getDirectoryProfiles(opts: DirectoryOpts) {
     .from(profileTag)
     .innerJoin(tag, eq(profileTag.tagId, tag.id))
     .innerJoin(profile, eq(profileTag.profileId, profile.id))
-    .where(sql`${profile.userId} = ANY(${profileIds})`);
+    .where(inArray(profile.userId, profileIds));
 
   // Batch-fetch community memberships
   const allMemberships = await db
@@ -152,7 +152,7 @@ export async function getDirectoryProfiles(opts: DirectoryOpts) {
     .innerJoin(community, eq(membership.communityId, community.id))
     .where(
       and(
-        sql`${membership.userId} = ANY(${profileIds})`,
+        inArray(membership.userId, profileIds),
         eq(membership.status, "active"),
       ),
     );
@@ -165,7 +165,7 @@ export async function getDirectoryProfiles(opts: DirectoryOpts) {
   const profileIdRows = await db
     .select({ id: profile.id, userId: profile.userId })
     .from(profile)
-    .where(sql`${profile.userId} = ANY(${profileIds})`);
+    .where(inArray(profile.userId, profileIds));
 
   for (const row of profileIdRows) {
     profileIdToUserId.set(row.id, row.userId);
@@ -222,7 +222,7 @@ export async function getCommunityDirectoryProfiles(
     sql`${profile.userId} IN (
       SELECT ${membership.userId}
       FROM ${membership}
-      WHERE ${membership.communityId} = ANY(${communityIds})
+      WHERE ${inArray(membership.communityId, communityIds)}
         AND ${membership.status} = 'active'
     )`,
   ];
@@ -255,7 +255,7 @@ export async function getCommunityDirectoryProfiles(
         sql`${profile.id} IN (
           SELECT ${profileTag.profileId}
           FROM ${profileTag}
-          WHERE ${profileTag.tagId} = ANY(${tagIds})
+          WHERE ${inArray(profileTag.tagId, tagIds)}
           GROUP BY ${profileTag.profileId}
           HAVING COUNT(DISTINCT ${profileTag.tagId}) = ${tagIds.length}
         )`,
@@ -302,7 +302,7 @@ export async function getCommunityDirectoryProfiles(
     .from(profileTag)
     .innerJoin(tag, eq(profileTag.tagId, tag.id))
     .innerJoin(profile, eq(profileTag.profileId, profile.id))
-    .where(sql`${profile.userId} = ANY(${profileIds})`);
+    .where(inArray(profile.userId, profileIds));
 
   // For per-community, show which specific community the member belongs to
   const allMemberships = await db
@@ -317,7 +317,7 @@ export async function getCommunityDirectoryProfiles(
     .innerJoin(community, eq(membership.communityId, community.id))
     .where(
       and(
-        sql`${membership.userId} = ANY(${profileIds})`,
+        inArray(membership.userId, profileIds),
         inArray(membership.communityId, communityIds),
         eq(membership.status, "active"),
       ),
@@ -326,7 +326,7 @@ export async function getCommunityDirectoryProfiles(
   const profileIdRows = await db
     .select({ id: profile.id, userId: profile.userId })
     .from(profile)
-    .where(sql`${profile.userId} = ANY(${profileIds})`);
+    .where(inArray(profile.userId, profileIds));
 
   const profileIdToUserId = new Map<string, string>();
   for (const row of profileIdRows) {

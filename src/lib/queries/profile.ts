@@ -1,4 +1,4 @@
-import { eq, sql } from "drizzle-orm";
+import { eq, sql, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { profile, profileTag, tag } from "@/db/schema";
 import type { UpdateProfileInput } from "@/lib/validations/profile";
@@ -82,7 +82,7 @@ export async function updateProfile(
       const matchedTags = await db
         .select({ id: tag.id })
         .from(tag)
-        .where(sql`${tag.slug} = ANY(${normalizedSlugs})`);
+        .where(inArray(tag.slug, normalizedSlugs));
 
       if (matchedTags.length > 0) {
         await db.insert(profileTag).values(

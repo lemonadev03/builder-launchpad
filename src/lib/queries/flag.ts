@@ -1,4 +1,4 @@
-import { and, eq, desc, count as drizzleCount, sql, gte, inArray } from "drizzle-orm";
+import { and, eq, desc, count as drizzleCount, gte, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { flag, post, comment, profile, community } from "@/db/schema";
 
@@ -81,7 +81,7 @@ export async function getFlagCountsBatch(
       and(
         eq(flag.targetType, targetType),
         eq(flag.status, "open"),
-        sql`${flag.targetId} = ANY(${targetIds})`,
+        inArray(flag.targetId, targetIds),
       ),
     )
     .groupBy(flag.targetId);
@@ -107,7 +107,7 @@ export async function getUserFlaggedTargets(
       and(
         eq(flag.userId, userId),
         eq(flag.targetType, targetType),
-        sql`${flag.targetId} = ANY(${targetIds})`,
+        inArray(flag.targetId, targetIds),
       ),
     );
 
