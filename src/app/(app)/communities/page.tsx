@@ -1,8 +1,10 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Building2 } from "lucide-react";
 import { getDirectoryCommunities } from "@/lib/queries/community";
 import { CommunityCard } from "@/components/community-card";
+import { CommunityFilters } from "@/components/community-filters";
 
 export const metadata: Metadata = {
   title: "Communities | Builder Launchpad",
@@ -62,6 +64,13 @@ export default async function CommunitiesPage({ searchParams }: Props) {
         <span className="text-sm text-muted-foreground">
           {total} communit{total !== 1 ? "ies" : "y"}
         </span>
+      </div>
+
+      {/* Filters */}
+      <div className="mb-6">
+        <Suspense>
+          <CommunityFilters />
+        </Suspense>
       </div>
 
       {/* Results */}
