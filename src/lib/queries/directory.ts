@@ -40,6 +40,7 @@ interface DirectoryOpts {
   tagSlugs?: string[];
   location?: string;
   communityId?: string;
+  communityIds?: string[];
 }
 
 export async function getDirectoryProfiles(opts: DirectoryOpts) {
@@ -87,13 +88,14 @@ export async function getDirectoryProfiles(opts: DirectoryOpts) {
     }
   }
 
-  // Community filter — profiles that are active members of this community
-  if (opts.communityId) {
+  // Community filter — profiles that are active members of specified communities
+  const filterCommunityIds = opts.communityIds ?? (opts.communityId ? [opts.communityId] : []);
+  if (filterCommunityIds.length > 0) {
     conditions.push(
       sql`${profile.userId} IN (
         SELECT ${membership.userId}
         FROM ${membership}
-        WHERE ${membership.communityId} = ${opts.communityId}
+        WHERE ${inArray(membership.communityId, filterCommunityIds)}
           AND ${membership.status} = 'active'
       )`,
     );

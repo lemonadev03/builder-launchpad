@@ -38,6 +38,7 @@ export function DirectoryFilters({
 
   const selectedTags = searchParams.get("tags")?.split(",").filter(Boolean) ?? [];
   const selectedCommunity = searchParams.get("community") ?? "";
+  const includeSisters = searchParams.get("sisters") === "true";
 
   const updateParams = useCallback(
     (updates: Record<string, string | null>) => {
@@ -85,7 +86,11 @@ export function DirectoryFilters({
   }
 
   function setCommunity(id: string) {
-    updateParams({ community: id || null });
+    updateParams({ community: id || null, sisters: null });
+  }
+
+  function toggleSisters() {
+    updateParams({ sisters: includeSisters ? null : "true" });
   }
 
   const hasFilters =
@@ -165,6 +170,20 @@ export function DirectoryFilters({
             </option>
           ))}
         </select>
+      )}
+
+      {/* Sister communities toggle */}
+      {showCommunityFilter && selectedCommunity && (
+        <button
+          onClick={toggleSisters}
+          className={`inline-flex items-center gap-1.5 rounded-md border px-3 py-1.5 text-xs transition-colors ${
+            includeSisters
+              ? "border-primary bg-primary/10 text-primary"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          Include sister communities
+        </button>
       )}
 
       {/* Clear filters */}

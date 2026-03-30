@@ -5,6 +5,7 @@ import { Users } from "lucide-react";
 import { getDirectoryProfiles } from "@/lib/queries/directory";
 import { getAllTags } from "@/lib/queries/profile";
 import { getListedCommunities } from "@/lib/queries/community";
+import { getAllSisterLinks } from "@/lib/queries/sister";
 import { ProfileCard, ProfileCardSkeleton } from "@/components/profile-card";
 import { DirectoryFilters } from "@/components/directory-filters";
 
@@ -21,6 +22,7 @@ interface Props {
     tags?: string;
     location?: string;
     community?: string;
+    sisters?: string;
   }>;
 }
 
@@ -31,15 +33,27 @@ export default async function DirectoryPage({ searchParams }: Props) {
     tags: tagsParam,
     location,
     community,
+    sisters: sistersParam,
   } = await searchParams;
 
   const page = Math.max(1, parseInt(pageParam ?? "1", 10));
   const limit = 20;
   const offset = (page - 1) * limit;
+  const includeSisters = sistersParam === "true" && !!community;
 
   const tagSlugs = tagsParam
     ? tagsParam.split(",").filter(Boolean)
     : undefined;
+
+  // Resolve sister community IDs when toggle is active
+  let communityIds: string[] | undefined;
+  if (community && includeSisters) {
+    const sisters = await getAllSisterLinks(community);
+    const sisterIds = sisters
+      .filter((s) => s.status === "active")
+      .map((s) => s.communityId);
+    communityIds = [community, ...sisterIds];
+  }
 
   const [{ profiles, total }, allTags, allCommunities] = await Promise.all([
     getDirectoryProfiles({
@@ -48,7 +62,8 @@ export default async function DirectoryPage({ searchParams }: Props) {
       search: search || undefined,
       tagSlugs,
       location: location || undefined,
-      communityId: community || undefined,
+      communityId: includeSisters ? undefined : (community || undefined),
+      communityIds: includeSisters ? communityIds : undefined,
     }),
     getAllTags(),
     getListedCommunities(),
@@ -64,6 +79,7 @@ export default async function DirectoryPage({ searchParams }: Props) {
     if (tagsParam) params.set("tags", tagsParam);
     if (location) params.set("location", location);
     if (community) params.set("community", community);
+    if (sistersParam) params.set("sisters", sistersParam);
     const qs = params.toString();
     return `/directory${qs ? `?${qs}` : ""}`;
   }
