@@ -1,4 +1,4 @@
-import { eq, sql, inArray } from "drizzle-orm";
+import { eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { profile, profileTag, tag } from "@/db/schema";
 import type { UpdateProfileInput } from "@/lib/validations/profile";

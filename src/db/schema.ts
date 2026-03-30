@@ -19,6 +19,7 @@ export const user = pgTable("user", {
   emailVerified: boolean("email_verified").default(false).notNull(),
   image: text("image"),
   isPlatformAdmin: boolean("is_platform_admin").default(false).notNull(),
+  isCompanyPoster: boolean("is_company_poster").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
@@ -490,5 +491,63 @@ export const bookmark = pgTable(
     ),
     index("bookmark_user_id_idx").on(table.userId),
     index("bookmark_target_idx").on(table.targetType, table.targetId),
+  ],
+);
+
+// ── Companies (lightweight, for job listing posters) ──────────────
+
+export const company = pgTable(
+  "company",
+  {
+    id: text("id").primaryKey(),
+    name: text("name").notNull(),
+    logoUrl: text("logo_url"),
+    website: text("website"),
+    description: text("description"),
+    createdBy: text("created_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+  },
+  (table) => [index("company_created_by_idx").on(table.createdBy)],
+);
+
+// ── Job Listings ──────────────────────────────────────────────────
+
+export const jobListing = pgTable(
+  "job_listing",
+  {
+    id: text("id").primaryKey(),
+    title: text("title").notNull(),
+    companyId: text("company_id")
+      .notNull()
+      .references(() => company.id, { onDelete: "cascade" }),
+    description: text("description").notNull(),
+    requirements: text("requirements"),
+    location: text("location"),
+    remote: boolean("remote").default(false).notNull(),
+    employmentType: text("employment_type", {
+      enum: ["full_time", "part_time", "freelance", "internship"],
+    }).notNull(),
+    salaryRange: text("salary_range"),
+    applicationUrl: text("application_url").notNull(),
+    postedBy: text("posted_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    updatedAt: timestamp("updated_at")
+      .defaultNow()
+      .$onUpdate(() => new Date())
+      .notNull(),
+    archivedAt: timestamp("archived_at"),
+  },
+  (table) => [
+    index("job_listing_company_id_idx").on(table.companyId),
+    index("job_listing_posted_by_idx").on(table.postedBy),
+    index("job_listing_employment_type_idx").on(table.employmentType),
   ],
 );
