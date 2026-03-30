@@ -20,12 +20,17 @@ export const user = pgTable("user", {
   image: text("image"),
   isPlatformAdmin: boolean("is_platform_admin").default(false).notNull(),
   isCompanyPoster: boolean("is_company_poster").default(false).notNull(),
+  suspendedAt: timestamp("suspended_at"),
+  deletedAt: timestamp("deleted_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at")
     .defaultNow()
     .$onUpdate(() => new Date())
     .notNull(),
-});
+}, (table) => [
+  index("user_suspended_at_idx").on(table.suspendedAt),
+  index("user_deleted_at_idx").on(table.deletedAt),
+]);
 
 export const session = pgTable(
   "session",
@@ -466,22 +471,25 @@ export const moderationAction = pgTable(
         "restore_community",
         "feature_community",
         "unfeature_community",
+        "suspend_user_platform",
+        "unsuspend_user_platform",
+        "soft_delete_user_platform",
       ],
     }).notNull(),
     moderatorId: text("moderator_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     targetType: text("target_type", {
-      enum: ["post", "comment", "member", "community"],
+      enum: ["post", "comment", "member", "community", "user"],
     }).notNull(),
     targetId: text("target_id").notNull(),
     targetUserId: text("target_user_id").references(() => user.id, {
       onDelete: "set null",
     }),
     reason: text("reason"),
-    communityId: text("community_id")
-      .notNull()
-      .references(() => community.id, { onDelete: "cascade" }),
+    communityId: text("community_id").references(() => community.id, {
+      onDelete: "cascade",
+    }),
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [

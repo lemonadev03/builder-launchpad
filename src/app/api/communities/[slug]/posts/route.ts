@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireApiAuth } from "@/lib/api-auth";
+import { getApiSession, requireApiAuth } from "@/lib/api-auth";
 import {
   checkPostCreateRateLimit,
 } from "@/lib/rate-limit";
@@ -15,7 +15,6 @@ import {
 import { createPostSchema } from "@/lib/validations/post";
 import { validatePostContent } from "@/lib/tiptap";
 import type { TiptapContent } from "@/lib/tiptap";
-import { auth } from "@/lib/auth";
 
 interface Props {
   params: Promise<{ slug: string }>;
@@ -118,7 +117,7 @@ export async function GET(request: Request, { params }: Props) {
 
   // Unlisted community: require auth + membership
   if (c.visibility === "unlisted") {
-    const session = await auth.api.getSession({ headers: request.headers });
+    const session = await getApiSession(request);
     if (!session) {
       return NextResponse.json(
         { error: "Community not found" },

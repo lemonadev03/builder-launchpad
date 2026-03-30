@@ -1,11 +1,19 @@
-import { betterAuth } from "better-auth";
+import { betterAuth, type BetterAuthPlugin } from "better-auth";
+import { createAuthMiddleware } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { magicLink } from "better-auth/plugins";
+import { APIError } from "@better-auth/core/error";
 import { Resend } from "resend";
 import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import * as schema from "@/db/schema";
 import { checkMagicLinkRateLimit } from "@/lib/rate-limit";
+import {
+  getBlockedAccountMessage,
+  getBlockedUserByEmail,
+  getUserAccessStateById,
+  isUserBlocked,
+} from "@/lib/user-access";
 
 function getResend() {
   if (!process.env.RESEND_API_KEY) {
@@ -18,6 +26,65 @@ function getResend() {
 }
 
 const FROM_EMAIL = "Builder Launchpad <noreply@tools.bscalelabs.com>";
+
+function platformUserAccessPlugin(): BetterAuthPlugin {
+  const blockedMessage = getBlockedAccountMessage();
+
+  return {
+    id: "platform-user-access",
+    init() {
+      return {
+        options: {
+          databaseHooks: {
+            session: {
+              create: {
+                async before(session: { userId: string }) {
+                  const access = await getUserAccessStateById(session.userId);
+
+                  if (isUserBlocked(access)) {
+                    throw APIError.from("FORBIDDEN", {
+                      message: blockedMessage,
+                      code: "ACCOUNT_BLOCKED",
+                    });
+                  }
+                },
+              },
+            },
+          },
+        },
+      };
+    },
+    hooks: {
+      before: [
+        {
+          matcher(ctx) {
+            return (
+              ctx.path === "/sign-in/email" ||
+              ctx.path === "/sign-in/magic-link" ||
+              ctx.path === "/sign-up/email"
+            );
+          },
+          handler: createAuthMiddleware(async (ctx) => {
+            const email =
+              typeof ctx.body?.email === "string"
+                ? ctx.body.email.trim().toLowerCase()
+                : null;
+
+            if (!email) return;
+
+            const blockedUser = await getBlockedUserByEmail(email);
+            if (!blockedUser) return;
+
+            throw APIError.from("FORBIDDEN", {
+              message: blockedMessage,
+              code: "ACCOUNT_BLOCKED",
+            });
+          }),
+        },
+      ],
+    },
+  };
+}
 
 function generateUsername(name: string): string {
   return name
@@ -129,6 +196,7 @@ export const auth = betterAuth({
       },
       expiresIn: 900, // 15 minutes
     }),
+    platformUserAccessPlugin(),
   ],
 });
 

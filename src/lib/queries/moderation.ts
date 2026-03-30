@@ -18,16 +18,19 @@ type ModerationActionType =
   | "archive_community"
   | "restore_community"
   | "feature_community"
-  | "unfeature_community";
+  | "unfeature_community"
+  | "suspend_user_platform"
+  | "unsuspend_user_platform"
+  | "soft_delete_user_platform";
 
 export async function logModerationAction(data: {
   action: ModerationActionType;
   moderatorId: string;
-  targetType: "post" | "comment" | "member" | "community";
+  targetType: "post" | "comment" | "member" | "community" | "user";
   targetId: string;
   targetUserId?: string;
   reason?: string;
-  communityId: string;
+  communityId?: string | null;
 }) {
   const [created] = await db
     .insert(moderationAction)
@@ -36,6 +39,7 @@ export async function logModerationAction(data: {
       ...data,
       targetUserId: data.targetUserId ?? null,
       reason: data.reason ?? null,
+      communityId: data.communityId ?? null,
     })
     .returning();
 

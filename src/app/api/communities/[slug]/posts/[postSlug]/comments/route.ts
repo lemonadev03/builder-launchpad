@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireApiAuth } from "@/lib/api-auth";
+import { getApiSession, requireApiAuth } from "@/lib/api-auth";
 import { checkCommentCreateRateLimit } from "@/lib/rate-limit";
 import { requireCommunityPermission } from "@/lib/permissions";
 import { getCommunityBySlug } from "@/lib/queries/community";
@@ -14,7 +14,6 @@ import {
 import { createCommentSchema } from "@/lib/validations/comment";
 import { validateCommentContent } from "@/lib/tiptap";
 import type { TiptapContent } from "@/lib/tiptap";
-import { auth } from "@/lib/auth";
 
 interface Props {
   params: Promise<{ slug: string; postSlug: string }>;
@@ -120,7 +119,7 @@ export async function GET(request: Request, { params }: Props) {
 
   // Unlisted community: require auth + membership
   if (c.visibility === "unlisted") {
-    const session = await auth.api.getSession({ headers: request.headers });
+    const session = await getApiSession(request);
     if (!session) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }

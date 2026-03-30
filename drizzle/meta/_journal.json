@@ -43,6 +43,13 @@
       "when": 1774877533742,
       "tag": "0005_omniscient_demogoblin",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1774878268483,
+      "tag": "0006_sad_goblin_queen",
+      "breakpoints": true
     }
   ]
 }

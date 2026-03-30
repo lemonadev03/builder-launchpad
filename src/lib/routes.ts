@@ -3,6 +3,7 @@
 
 export const PUBLIC_ROUTES = [
   "/",
+  "/blocked",
   "/login",
   "/signup",
   "/communities",

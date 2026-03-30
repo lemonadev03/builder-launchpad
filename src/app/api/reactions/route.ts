@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireApiAuth } from "@/lib/api-auth";
+import { getApiSession, requireApiAuth } from "@/lib/api-auth";
 import { checkReactionRateLimit } from "@/lib/rate-limit";
 import { reactionSchema } from "@/lib/validations/reaction";
 import {
@@ -8,7 +8,6 @@ import {
   getReactionCounts,
   getUserReactions,
 } from "@/lib/queries/reaction";
-import { auth } from "@/lib/auth";
 
 export async function POST(request: Request) {
   const { session, response } = await requireApiAuth(request);
@@ -108,7 +107,7 @@ export async function GET(request: Request) {
   const counts = await getReactionCounts(targetType, targetId);
 
   // Include user's reactions if authenticated
-  const session = await auth.api.getSession({ headers: request.headers });
+  const session = await getApiSession(request);
   const userReactions = session
     ? await getUserReactions(session.user.id, targetType, targetId)
     : [];

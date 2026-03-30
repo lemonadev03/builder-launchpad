@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireApiAuth } from "@/lib/api-auth";
+import { getApiSession, requireApiAuth } from "@/lib/api-auth";
 import { checkPostUpdateRateLimit } from "@/lib/rate-limit";
 import { hasPermission } from "@/lib/permissions";
 import { getCommunityBySlug } from "@/lib/queries/community";
@@ -8,7 +8,6 @@ import { getPostBySlug, updatePost, archivePost } from "@/lib/queries/post";
 import { updatePostSchema } from "@/lib/validations/post";
 import { validatePostContent } from "@/lib/tiptap";
 import type { TiptapContent } from "@/lib/tiptap";
-import { auth } from "@/lib/auth";
 
 interface Props {
   params: Promise<{ slug: string; postSlug: string }>;
@@ -26,7 +25,7 @@ export async function GET(request: Request, { params }: Props) {
 
   // Unlisted community check
   if (c.visibility === "unlisted") {
-    const session = await auth.api.getSession({ headers: request.headers });
+    const session = await getApiSession(request);
     if (!session) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
@@ -43,7 +42,7 @@ export async function GET(request: Request, { params }: Props) {
 
   // Drafts only visible to author
   if (p.status === "draft") {
-    const session = await auth.api.getSession({ headers: request.headers });
+    const session = await getApiSession(request);
     if (!session || session.user.id !== p.authorId) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }

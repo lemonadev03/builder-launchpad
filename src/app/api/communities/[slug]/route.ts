@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireApiAuth } from "@/lib/api-auth";
-import { auth } from "@/lib/auth";
+import { getApiSession, requireApiAuth } from "@/lib/api-auth";
 import { checkCommunityUpdateRateLimit } from "@/lib/rate-limit";
 import { updateCommunitySchema } from "@/lib/validations/community";
 import {
@@ -29,7 +28,7 @@ export async function GET(request: Request, { params }: Props) {
 
   // Unlisted communities: only visible to members
   if (c.visibility === "unlisted") {
-    const session = await auth.api.getSession({ headers: request.headers });
+    const session = await getApiSession(request);
     if (!session) {
       return NextResponse.json(
         { error: "Community not found" },
