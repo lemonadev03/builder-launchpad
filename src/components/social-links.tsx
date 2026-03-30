@@ -15,16 +15,17 @@ const PLATFORM_CONFIG: Record<
   linkedin: { icon: Share2, label: "LinkedIn" },
   github: { icon: Code2, label: "GitHub" },
   twitter: { icon: ExternalLink, label: "Twitter / X" },
+  facebook: { icon: ExternalLink, label: "Facebook" },
   discord: { icon: MessageCircle, label: "Discord" },
   website: { icon: Globe, label: "Website" },
   email: { icon: Mail, label: "Email" },
 };
 
-// LinkedIn shown first, then rest in order
 const PLATFORM_ORDER = [
   "linkedin",
   "github",
   "twitter",
+  "facebook",
   "discord",
   "website",
   "email",

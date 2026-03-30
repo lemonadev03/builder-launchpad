@@ -116,6 +116,7 @@ export type SocialLinks = {
   linkedin?: string;
   github?: string;
   twitter?: string;
+  facebook?: string;
   discord?: string;
   website?: string;
   email?: string;

@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
+import { imageUrl } from "@/lib/utils";
 import {
   ArrowLeft,
   ExternalLink,
@@ -80,7 +81,7 @@ export default async function JobDetailPage({ params }: Props) {
             {job.companyLogoUrl ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
-                src={job.companyLogoUrl}
+                src={imageUrl(job.companyLogoUrl) ?? job.companyLogoUrl}
                 alt={job.companyName}
                 className="h-full w-full object-cover"
               />

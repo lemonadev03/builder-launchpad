@@ -2,6 +2,7 @@ import {
   S3Client,
   PutObjectCommand,
   DeleteObjectCommand,
+  GetObjectCommand,
 } from "@aws-sdk/client-s3";
 
 let _client: S3Client | null = null;
@@ -52,15 +53,27 @@ export async function deleteFromS3(key: string) {
   );
 }
 
+export async function getFromS3(key: string) {
+  const res = await getS3Client().send(
+    new GetObjectCommand({
+      Bucket: getBucket(),
+      Key: key,
+    }),
+  );
+  return res;
+}
+
 export function getPublicUrl(key: string): string {
-  // Railway Object Storage: endpoint + bucket + key
-  const endpoint = process.env.AWS_ENDPOINT_URL;
-  const bucket = getBucket();
-  if (!endpoint) throw new Error("AWS_ENDPOINT_URL is required");
-  return `${endpoint.replace(/\/$/, "")}/${bucket}/${key}`;
+  // Proxy through our API since Railway Object Storage is private-only
+  return `/api/images/${key}`;
 }
 
 export function extractKeyFromUrl(url: string): string | null {
+  // Handle proxy URLs: /api/images/{key}
+  const proxyPrefix = "/api/images/";
+  if (url.startsWith(proxyPrefix)) return url.slice(proxyPrefix.length);
+
+  // Handle legacy direct S3 URLs
   const endpoint = process.env.AWS_ENDPOINT_URL;
   const bucket = getBucket();
   if (!endpoint) return null;

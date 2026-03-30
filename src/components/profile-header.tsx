@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { MapPin, Pencil } from "lucide-react";
 import { buttonVariants } from "@/components/ui/button-variants";
+import { imageUrl } from "@/lib/utils";
 
 function getInitials(name: string): string {
   return name
@@ -38,7 +39,7 @@ export function ProfileHeader({
         {bannerUrl ? (
           /* eslint-disable-next-line @next/next/no-img-element */
           <img
-            src={bannerUrl}
+            src={imageUrl(bannerUrl) ?? bannerUrl}
             alt=""
             className="h-full w-full object-cover"
           />
@@ -55,7 +56,7 @@ export function ProfileHeader({
             {avatarUrl ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
-                src={avatarUrl}
+                src={imageUrl(avatarUrl) ?? avatarUrl}
                 alt={displayName}
                 className="h-full w-full object-cover"
               />

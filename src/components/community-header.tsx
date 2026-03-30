@@ -1,3 +1,5 @@
+import { imageUrl } from "@/lib/utils";
+
 interface CommunityHeaderProps {
   name: string;
   tagline?: string | null;
@@ -36,7 +38,7 @@ export function CommunityHeader({
         className="h-32 w-full rounded-lg sm:h-40"
         style={{
           backgroundColor: accentColor,
-          backgroundImage: bannerUrl ? `url(${bannerUrl})` : undefined,
+          backgroundImage: bannerUrl ? `url(${imageUrl(bannerUrl) ?? bannerUrl})` : undefined,
           backgroundSize: "cover",
           backgroundPosition: "center",
         }}
@@ -50,7 +52,7 @@ export function CommunityHeader({
             {logoUrl ? (
               /* eslint-disable-next-line @next/next/no-img-element */
               <img
-                src={logoUrl}
+                src={imageUrl(logoUrl) ?? logoUrl}
                 alt={name}
                 className="h-full w-full object-cover"
               />

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MapPin, Clock, DollarSign, Globe } from "lucide-react";
+import { imageUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { JobListingWithCompany } from "@/lib/queries/job";
 
@@ -45,7 +46,7 @@ export function JobCard({ job: j }: JobCardProps) {
           {j.companyLogoUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
-              src={j.companyLogoUrl}
+              src={imageUrl(j.companyLogoUrl) ?? j.companyLogoUrl}
               alt={j.companyName}
               className="h-full w-full object-cover"
             />

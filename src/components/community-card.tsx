@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { MapPin, Users, GitBranch } from "lucide-react";
+import { imageUrl } from "@/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import type { DirectoryCommunity } from "@/lib/queries/community";
 
@@ -37,7 +38,7 @@ export function CommunityCard({ community: c }: CommunityCardProps) {
           {c.logoUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */
             <img
-              src={c.logoUrl}
+              src={imageUrl(c.logoUrl) ?? c.logoUrl}
               alt={c.name}
               className="h-full w-full object-cover"
             />

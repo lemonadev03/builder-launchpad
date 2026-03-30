@@ -38,6 +38,7 @@ const SOCIAL_LABELS: Record<string, string> = {
   linkedin: "LinkedIn URL",
   github: "GitHub URL",
   twitter: "Twitter / X URL",
+  facebook: "Facebook URL",
   discord: "Discord Username",
   website: "Website URL",
   email: "Contact Email",
