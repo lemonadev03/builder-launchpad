@@ -14,12 +14,16 @@ type ModerationActionType =
   | "warn_member"
   | "suspend_member"
   | "unsuspend_member"
-  | "remove_member";
+  | "remove_member"
+  | "archive_community"
+  | "restore_community"
+  | "feature_community"
+  | "unfeature_community";
 
 export async function logModerationAction(data: {
   action: ModerationActionType;
   moderatorId: string;
-  targetType: "post" | "comment" | "member";
+  targetType: "post" | "comment" | "member" | "community";
   targetId: string;
   targetUserId?: string;
   reason?: string;

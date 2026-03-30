@@ -1,6 +1,17 @@
-import { and, eq, isNull, count, desc, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  count,
+  desc,
+  eq,
+  ilike,
+  isNotNull,
+  isNull,
+  sql,
+} from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
-import { community, membership } from "@/db/schema";
+import { community, membership, post, profile } from "@/db/schema";
 import { findAvailableSlug } from "@/lib/slug";
 import type { CreateCommunityInput, UpdateCommunityInput } from "@/lib/validations/community";
 
@@ -20,6 +31,45 @@ export type DirectoryCommunity = {
   memberCount: number;
   chapterCount: number;
   createdAt: Date;
+};
+
+export type PlatformCommunityListItem = {
+  id: string;
+  name: string;
+  slug: string;
+  parentId: string | null;
+  parentName: string | null;
+  depth: number;
+  isFeatured: boolean;
+  createdAt: Date;
+  archivedAt: Date | null;
+  memberCount: number;
+};
+
+export type PlatformCommunityDetail = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  tagline: string | null;
+  location: string | null;
+  logoUrl: string | null;
+  bannerUrl: string | null;
+  primaryColor: string | null;
+  visibility: "listed" | "unlisted";
+  joinPolicy: "invite_only" | "request_to_join" | "open";
+  parentId: string | null;
+  parentName: string | null;
+  depth: number;
+  subTierLabel: string | null;
+  isFeatured: boolean;
+  createdBy: string;
+  createdAt: Date;
+  updatedAt: Date;
+  archivedAt: Date | null;
+  memberCount: number;
+  contentCount: number;
+  childCount: number;
 };
 
 export async function createCommunity(
@@ -89,6 +139,24 @@ export async function getCommunityBySlug(slug: string) {
   return { ...c, memberCount: memberCount.count };
 }
 
+export async function getCommunityById(
+  communityId: string,
+  opts?: { includeArchived?: boolean },
+) {
+  const conditions = [eq(community.id, communityId)];
+  if (!opts?.includeArchived) {
+    conditions.push(isNull(community.archivedAt));
+  }
+
+  const rows = await db
+    .select()
+    .from(community)
+    .where(and(...conditions))
+    .limit(1);
+
+  return rows[0] ?? null;
+}
+
 export async function updateCommunity(
   communityId: string,
   data: UpdateCommunityInput,
@@ -114,8 +182,31 @@ export async function updateCommunity(
 export async function archiveCommunity(communityId: string) {
   const rows = await db
     .update(community)
-    .set({ archivedAt: new Date() })
+    .set({ archivedAt: new Date(), isFeatured: false })
     .where(and(eq(community.id, communityId), isNull(community.archivedAt)))
+    .returning();
+
+  return rows[0] ?? null;
+}
+
+export async function restoreCommunity(communityId: string) {
+  const rows = await db
+    .update(community)
+    .set({ archivedAt: null })
+    .where(and(eq(community.id, communityId), isNotNull(community.archivedAt)))
+    .returning();
+
+  return rows[0] ?? null;
+}
+
+export async function setCommunityFeatured(
+  communityId: string,
+  isFeatured: boolean,
+) {
+  const rows = await db
+    .update(community)
+    .set({ isFeatured })
+    .where(eq(community.id, communityId))
     .returning();
 
   return rows[0] ?? null;
@@ -231,4 +322,174 @@ export async function getDirectoryCommunities(opts: CommunityDirectoryOpts) {
     communities: rows as DirectoryCommunity[],
     total: totalRow?.count ?? 0,
   };
+}
+
+type PlatformCommunityStatusFilter = "active" | "archived" | "all";
+
+interface PlatformCommunityOpts {
+  limit: number;
+  offset: number;
+  search?: string;
+  rootOnly?: boolean;
+  status?: PlatformCommunityStatusFilter;
+  depth?: number;
+}
+
+export async function getPlatformCommunities(opts: PlatformCommunityOpts) {
+  const status = opts.status ?? "active";
+  const parent = alias(community, "parent_community");
+  const memberCountSq = sql<number>`(
+    SELECT count(*)::int FROM membership m
+    WHERE m.community_id = ${community.id}
+      AND m.status = 'active'
+  )`.as("member_count");
+
+  const conditions = [];
+
+  if (status === "active") {
+    conditions.push(isNull(community.archivedAt));
+  } else if (status === "archived") {
+    conditions.push(isNotNull(community.archivedAt));
+  }
+
+  if (opts.rootOnly) {
+    conditions.push(isNull(community.parentId));
+  }
+
+  if (opts.depth !== undefined) {
+    conditions.push(eq(community.depth, opts.depth));
+  }
+
+  if (opts.search) {
+    conditions.push(ilike(community.name, `%${opts.search}%`));
+  }
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+
+  const rows = await db
+    .select({
+      id: community.id,
+      name: community.name,
+      slug: community.slug,
+      parentId: community.parentId,
+      parentName: parent.name,
+      depth: community.depth,
+      isFeatured: community.isFeatured,
+      createdAt: community.createdAt,
+      archivedAt: community.archivedAt,
+      memberCount: memberCountSq,
+    })
+    .from(community)
+    .leftJoin(parent, eq(community.parentId, parent.id))
+    .where(where)
+    .orderBy(desc(community.createdAt), asc(community.name))
+    .limit(opts.limit)
+    .offset(opts.offset);
+
+  const [totalRow] = await db
+    .select({ count: count() })
+    .from(community)
+    .where(where);
+
+  return {
+    communities: rows as PlatformCommunityListItem[],
+    total: totalRow?.count ?? 0,
+  };
+}
+
+export async function getPlatformCommunityDetail(communityId: string) {
+  const parent = alias(community, "parent_community");
+  const memberCountSq = sql<number>`(
+    SELECT count(*)::int FROM membership m
+    WHERE m.community_id = ${community.id}
+      AND m.status = 'active'
+  )`.as("member_count");
+  const contentCountSq = sql<number>`(
+    SELECT count(*)::int FROM post p
+    WHERE p.community_id = ${community.id}
+  )`.as("content_count");
+  const childCountSq = sql<number>`(
+    SELECT count(*)::int FROM community child
+    WHERE child.parent_id = ${community.id}
+  )`.as("child_count");
+
+  const rows = await db
+    .select({
+      id: community.id,
+      name: community.name,
+      slug: community.slug,
+      description: community.description,
+      tagline: community.tagline,
+      location: community.location,
+      logoUrl: community.logoUrl,
+      bannerUrl: community.bannerUrl,
+      primaryColor: community.primaryColor,
+      visibility: community.visibility,
+      joinPolicy: community.joinPolicy,
+      parentId: community.parentId,
+      parentName: parent.name,
+      depth: community.depth,
+      subTierLabel: community.subTierLabel,
+      isFeatured: community.isFeatured,
+      createdBy: community.createdBy,
+      createdAt: community.createdAt,
+      updatedAt: community.updatedAt,
+      archivedAt: community.archivedAt,
+      memberCount: memberCountSq,
+      contentCount: contentCountSq,
+      childCount: childCountSq,
+    })
+    .from(community)
+    .leftJoin(parent, eq(community.parentId, parent.id))
+    .where(eq(community.id, communityId))
+    .limit(1);
+
+  return (rows[0] as PlatformCommunityDetail | undefined) ?? null;
+}
+
+export async function getPlatformChildCommunities(parentId: string) {
+  const memberCountSq = sql<number>`(
+    SELECT count(*)::int FROM membership m
+    WHERE m.community_id = ${community.id}
+      AND m.status = 'active'
+  )`.as("member_count");
+
+  return db
+    .select({
+      id: community.id,
+      name: community.name,
+      slug: community.slug,
+      depth: community.depth,
+      isFeatured: community.isFeatured,
+      createdAt: community.createdAt,
+      archivedAt: community.archivedAt,
+      memberCount: memberCountSq,
+    })
+    .from(community)
+    .where(eq(community.parentId, parentId))
+    .orderBy(asc(community.name));
+}
+
+export async function getPlatformCommunityPosts(
+  communityId: string,
+  limit = 12,
+) {
+  return db
+    .select({
+      id: post.id,
+      title: post.title,
+      slug: post.slug,
+      status: post.status,
+      createdAt: post.createdAt,
+      publishedAt: post.publishedAt,
+      archivedAt: post.archivedAt,
+      hiddenAt: post.hiddenAt,
+      authorDisplayName: profile.displayName,
+      authorUsername: profile.username,
+    })
+    .from(post)
+    .innerJoin(profile, eq(post.authorId, profile.userId))
+    .where(eq(post.communityId, communityId))
+    .orderBy(desc(post.createdAt))
+    .limit(limit);
 }

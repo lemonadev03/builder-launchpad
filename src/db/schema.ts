@@ -197,6 +197,7 @@ export const community = pgTable(
     parentId: text("parent_id"),
     depth: integer("depth").default(0).notNull(),
     subTierLabel: text("sub_tier_label"),
+    isFeatured: boolean("is_featured").default(false).notNull(),
     createdBy: text("created_by")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
@@ -461,13 +462,17 @@ export const moderationAction = pgTable(
         "suspend_member",
         "unsuspend_member",
         "remove_member",
+        "archive_community",
+        "restore_community",
+        "feature_community",
+        "unfeature_community",
       ],
     }).notNull(),
     moderatorId: text("moderator_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     targetType: text("target_type", {
-      enum: ["post", "comment", "member"],
+      enum: ["post", "comment", "member", "community"],
     }).notNull(),
     targetId: text("target_id").notNull(),
     targetUserId: text("target_user_id").references(() => user.id, {

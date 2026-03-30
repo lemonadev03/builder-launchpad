@@ -15,6 +15,7 @@ interface TreeNode {
   depth: number;
   subTierLabel: string | null;
   memberCount: number;
+  isArchived: boolean;
   children: TreeNode[];
 }
 
@@ -22,10 +23,24 @@ interface OrgChartProps {
   tree: TreeNode;
   currentSlug: string;
   isAdmin: boolean;
+  viewHref?: (node: TreeNode) => string;
+  manageHref?: (node: TreeNode) => string | null;
 }
 
-export function OrgChart({ tree, currentSlug, isAdmin }: OrgChartProps) {
+export function OrgChart({
+  tree,
+  currentSlug,
+  isAdmin,
+  viewHref,
+  manageHref,
+}: OrgChartProps) {
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
+  const getViewHref =
+    viewHref ?? ((node: TreeNode) => `/communities/${node.slug}`);
+  const getManageHref =
+    manageHref ??
+    ((node: TreeNode) =>
+      isAdmin ? `/communities/${node.slug}/manage` : null);
 
   return (
     <div className="flex gap-6 px-4 sm:px-6">
@@ -60,6 +75,9 @@ export function OrgChart({ tree, currentSlug, isAdmin }: OrgChartProps) {
                 <p className="truncate text-sm font-semibold">
                   {selectedNode.name}
                 </p>
+                {selectedNode.isArchived && (
+                  <p className="text-xs text-amber-700">Archived</p>
+                )}
                 {selectedNode.subTierLabel && (
                   <p className="text-xs text-muted-foreground">
                     {selectedNode.children.length}{" "}
@@ -79,14 +97,14 @@ export function OrgChart({ tree, currentSlug, isAdmin }: OrgChartProps) {
 
             <div className="space-y-2">
               <Link
-                href={`/communities/${selectedNode.slug}`}
+                href={getViewHref(selectedNode)}
                 className="block text-sm text-primary hover:underline"
               >
                 View Community
               </Link>
-              {isAdmin && (
+              {getManageHref(selectedNode) && (
                 <Link
-                  href={`/communities/${selectedNode.slug}/manage`}
+                  href={getManageHref(selectedNode)!}
                   className="block text-sm text-muted-foreground hover:text-foreground"
                 >
                   Manage
@@ -130,6 +148,7 @@ function TreeNodeComponent({
           "flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-left transition-colors hover:bg-muted/50",
           isSelected && "bg-primary/10",
           isCurrent && "ring-1 ring-primary/30",
+          node.isArchived && "opacity-70",
         )}
       >
         {hasChildren ? (
@@ -158,6 +177,11 @@ function TreeNodeComponent({
         <Badge variant="outline" className="text-xs">
           {node.memberCount}
         </Badge>
+        {node.isArchived && (
+          <Badge variant="outline" className="text-[10px] text-amber-700">
+            Archived
+          </Badge>
+        )}
       </button>
 
       {expanded && hasChildren && (

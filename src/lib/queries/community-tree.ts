@@ -71,6 +71,37 @@ export async function getChildCommunities(parentId: string) {
     .orderBy(community.name);
 }
 
+export async function getRootCommunityId(
+  communityId: string,
+  opts?: { includeArchived?: boolean },
+) {
+  const includeArchived = opts?.includeArchived ?? false;
+  let currentId: string | null = communityId;
+  let rootId = communityId;
+  let iterations = 0;
+
+  while (currentId && iterations < 5) {
+    const [comm] = await db
+      .select({
+        id: community.id,
+        parentId: community.parentId,
+        archivedAt: community.archivedAt,
+      })
+      .from(community)
+      .where(eq(community.id, currentId))
+      .limit(1);
+
+    if (!comm) break;
+    if (!includeArchived && comm.archivedAt) break;
+
+    rootId = comm.id;
+    currentId = comm.parentId;
+    iterations++;
+  }
+
+  return rootId;
+}
+
 /**
  * Get all descendants of a community (recursive, bounded by max depth).
  */
@@ -156,7 +187,12 @@ export async function validateSubCommunityCreation(parentId: string) {
 /**
  * Get the full tree structure for a root community (for org chart).
  */
-export async function getCommunityTree(rootId: string) {
+export async function getCommunityTree(
+  rootId: string,
+  opts?: { includeArchived?: boolean },
+) {
+  const includeArchived = opts?.includeArchived ?? false;
+
   type TreeNode = {
     id: string;
     name: string;
@@ -165,10 +201,16 @@ export async function getCommunityTree(rootId: string) {
     depth: number;
     subTierLabel: string | null;
     memberCount: number;
+    isArchived: boolean;
     children: TreeNode[];
   };
 
   async function buildNode(communityId: string): Promise<TreeNode | null> {
+    const conditions = [eq(community.id, communityId)];
+    if (!includeArchived) {
+      conditions.push(isNull(community.archivedAt));
+    }
+
     const [comm] = await db
       .select({
         id: community.id,
@@ -177,9 +219,10 @@ export async function getCommunityTree(rootId: string) {
         logoUrl: community.logoUrl,
         depth: community.depth,
         subTierLabel: community.subTierLabel,
+        archivedAt: community.archivedAt,
       })
       .from(community)
-      .where(and(eq(community.id, communityId), isNull(community.archivedAt)))
+      .where(and(...conditions))
       .limit(1);
 
     if (!comm) return null;
@@ -194,12 +237,15 @@ export async function getCommunityTree(rootId: string) {
         ),
       );
 
+    const childConditions = [eq(community.parentId, communityId)];
+    if (!includeArchived) {
+      childConditions.push(isNull(community.archivedAt));
+    }
+
     const children = await db
       .select({ id: community.id })
       .from(community)
-      .where(
-        and(eq(community.parentId, communityId), isNull(community.archivedAt)),
-      )
+      .where(and(...childConditions))
       .orderBy(community.name);
 
     const childNodes: TreeNode[] = [];
@@ -211,6 +257,7 @@ export async function getCommunityTree(rootId: string) {
     return {
       ...comm,
       memberCount: memberCount.count,
+      isArchived: comm.archivedAt !== null,
       children: childNodes,
     };
   }
