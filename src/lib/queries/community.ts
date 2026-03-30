@@ -1,8 +1,26 @@
-import { and, eq, isNull, count } from "drizzle-orm";
+import { and, eq, isNull, count, desc, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { community, membership } from "@/db/schema";
 import { findAvailableSlug } from "@/lib/slug";
 import type { CreateCommunityInput, UpdateCommunityInput } from "@/lib/validations/community";
+
+// ── Directory types ─────────────────────────────────────────────────
+
+export type DirectoryCommunity = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  tagline: string | null;
+  location: string | null;
+  logoUrl: string | null;
+  bannerUrl: string | null;
+  primaryColor: string | null;
+  joinPolicy: "invite_only" | "request_to_join" | "open";
+  memberCount: number;
+  chapterCount: number;
+  createdAt: Date;
+};
 
 export async function createCommunity(
   userId: string,
@@ -129,4 +147,88 @@ export async function getListedCommunities() {
     .orderBy(community.createdAt);
 
   return communities;
+}
+
+// ── Community directory (enriched with counts) ──────────────────────
+
+interface CommunityDirectoryOpts {
+  limit: number;
+  offset: number;
+  search?: string;
+  location?: string;
+  sort?: "newest" | "members";
+}
+
+export async function getDirectoryCommunities(opts: CommunityDirectoryOpts) {
+  const conditions = [
+    isNull(community.parentId),
+    eq(community.visibility, "listed"),
+    isNull(community.archivedAt),
+  ];
+
+  if (opts.search) {
+    const term = `%${opts.search}%`;
+    conditions.push(
+      sql`(
+        ${community.name} ILIKE ${term}
+        OR ${community.description} ILIKE ${term}
+        OR ${community.tagline} ILIKE ${term}
+      )`,
+    );
+  }
+
+  if (opts.location) {
+    conditions.push(sql`${community.location} ILIKE ${`%${opts.location}%`}`);
+  }
+
+  const where = and(...conditions);
+
+  const memberCountSq = sql<number>`(
+    SELECT count(*)::int FROM membership m
+    WHERE m.community_id = community.id
+      AND m.status = 'active'
+  )`.as("member_count");
+
+  const chapterCountSq = sql<number>`(
+    SELECT count(*)::int FROM community sub
+    WHERE sub.parent_id = community.id
+      AND sub.archived_at IS NULL
+  )`.as("chapter_count");
+
+  const orderBy =
+    opts.sort === "members"
+      ? desc(sql`(SELECT count(*) FROM membership m WHERE m.community_id = community.id AND m.status = 'active')`)
+      : desc(community.createdAt);
+
+  const rows = await db
+    .select({
+      id: community.id,
+      name: community.name,
+      slug: community.slug,
+      description: community.description,
+      tagline: community.tagline,
+      location: community.location,
+      logoUrl: community.logoUrl,
+      bannerUrl: community.bannerUrl,
+      primaryColor: community.primaryColor,
+      joinPolicy: community.joinPolicy,
+      createdAt: community.createdAt,
+      memberCount: memberCountSq,
+      chapterCount: chapterCountSq,
+    })
+    .from(community)
+    .where(where)
+    .orderBy(orderBy)
+    .limit(opts.limit)
+    .offset(opts.offset);
+
+  const [totalRow] = await db
+    .select({ count: count() })
+    .from(community)
+    .where(where);
+
+  return {
+    communities: rows as DirectoryCommunity[],
+    total: totalRow?.count ?? 0,
+  };
 }

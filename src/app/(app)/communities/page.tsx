@@ -1,8 +1,11 @@
-import { getListedCommunities } from "@/lib/queries/community";
+import { getDirectoryCommunities } from "@/lib/queries/community";
 import { CommunityCard } from "@/components/community-card";
 
 export default async function CommunitiesPage() {
-  const communities = await getListedCommunities();
+  const { communities } = await getDirectoryCommunities({
+    limit: 20,
+    offset: 0,
+  });
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -14,17 +17,9 @@ export default async function CommunitiesPage() {
       </div>
 
       {communities.length > 0 ? (
-        <div className="space-y-2">
+        <div className="grid gap-3 sm:grid-cols-2">
           {communities.map((c) => (
-            <CommunityCard
-              key={c.id}
-              name={c.name}
-              slug={c.slug}
-              tagline={c.tagline}
-              logoUrl={c.logoUrl}
-              location={c.location}
-              primaryColor={c.primaryColor}
-            />
+            <CommunityCard key={c.id} community={c} />
           ))}
         </div>
       ) : (
