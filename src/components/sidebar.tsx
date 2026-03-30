@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { cn } from "@/lib/utils";
-import { NAV_ITEMS, type NavItem } from "@/lib/nav";
+import { NAV_ITEMS, PLATFORM_NAV } from "@/lib/nav";
 import { authClient } from "@/lib/auth-client";
 import { useSession } from "@/components/auth-provider";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -17,12 +17,18 @@ import {
 import { LogOut, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
+const NAV_SETS = {
+  default: NAV_ITEMS,
+  platform: PLATFORM_NAV,
+} as const;
+
 interface SidebarProps {
-  items?: NavItem[];
+  nav?: keyof typeof NAV_SETS;
   header?: React.ReactNode;
 }
 
-export function Sidebar({ items = NAV_ITEMS, header }: SidebarProps) {
+export function Sidebar({ nav = "default", header }: SidebarProps) {
+  const items = NAV_SETS[nav];
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();

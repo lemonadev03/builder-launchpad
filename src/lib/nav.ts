@@ -5,6 +5,10 @@ import {
   Briefcase,
   Bookmark,
   User,
+  Building2,
+  LayoutDashboard,
+  Settings2,
+  Shield,
   type LucideIcon,
 } from "lucide-react";
 
@@ -21,4 +25,12 @@ export const NAV_ITEMS: NavItem[] = [
   { label: "Jobs", href: "/jobs", icon: Briefcase },
   { label: "Bookmarks", href: "/bookmarks", icon: Bookmark },
   { label: "Profile", href: "/profile", icon: User },
+];
+
+export const PLATFORM_NAV: NavItem[] = [
+  { label: "Dashboard", href: "/platform", icon: LayoutDashboard },
+  { label: "Communities", href: "/platform/communities", icon: Building2 },
+  { label: "Users", href: "/platform/users", icon: Users },
+  { label: "Settings", href: "/platform/settings", icon: Settings2 },
+  { label: "Moderation", href: "/platform/moderation", icon: Shield },
 ];

@@ -1,23 +1,7 @@
 import Link from "next/link";
-import {
-  Building2,
-  LayoutDashboard,
-  Settings2,
-  Shield,
-  Users,
-  ArrowLeft,
-} from "lucide-react";
+import { ArrowLeft, Shield } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
 import { requirePlatformAdminSession } from "@/lib/platform-admin";
-import type { NavItem } from "@/lib/nav";
-
-const PLATFORM_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/platform", icon: LayoutDashboard },
-  { label: "Communities", href: "/platform/communities", icon: Building2 },
-  { label: "Users", href: "/platform/users", icon: Users },
-  { label: "Settings", href: "/platform/settings", icon: Settings2 },
-  { label: "Moderation", href: "/platform/moderation", icon: Shield },
-];
 
 function PlatformSidebarHeader() {
   return (
@@ -48,7 +32,7 @@ export default async function PlatformLayout({
 
   return (
     <AppShell
-      sidebarItems={PLATFORM_NAV}
+      sidebarNav="platform"
       sidebarHeader={<PlatformSidebarHeader />}
     >
       {children}
