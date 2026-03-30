@@ -29,7 +29,7 @@ export default async function CommunitiesPage({ searchParams }: Props) {
     sort: sortParam,
   } = await searchParams;
 
-  const page = Math.max(1, parseInt(pageParam ?? "1", 10));
+  const page = Math.max(1, parseInt(pageParam ?? "1", 10) || 1);
   const limit = 20;
   const offset = (page - 1) * limit;
   const sort = sortParam === "members" ? "members" : "newest";

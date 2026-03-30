@@ -31,8 +31,8 @@ export function CommunityCard({ community: c }: CommunityCardProps) {
     >
       <div className="flex items-start gap-3">
         <div
-          className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg"
-          style={{ backgroundColor: c.primaryColor || undefined }}
+          className="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-primary"
+          style={c.primaryColor ? { backgroundColor: c.primaryColor } : undefined}
         >
           {c.logoUrl ? (
             /* eslint-disable-next-line @next/next/no-img-element */

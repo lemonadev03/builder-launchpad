@@ -197,7 +197,7 @@ export async function getDirectoryCommunities(opts: CommunityDirectoryOpts) {
 
   const orderBy =
     opts.sort === "members"
-      ? desc(sql`(SELECT count(*) FROM membership m WHERE m.community_id = community.id AND m.status = 'active')`)
+      ? desc(sql`member_count`)
       : desc(community.createdAt);
 
   const rows = await db
