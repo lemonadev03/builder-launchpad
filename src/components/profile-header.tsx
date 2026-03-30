@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { MapPin, Pencil } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button-variants";
 
 function getInitials(name: string): string {
   return name
@@ -75,12 +75,13 @@ export function ProfileHeader({
           </div>
 
           {isOwner && (
-            <Button variant="outline" size="sm" className="shrink-0 self-center" asChild>
-              <Link href="/settings/profile">
-                <Pencil className="h-3.5 w-3.5" />
-                Edit profile
-              </Link>
-            </Button>
+            <Link
+              href="/settings/profile"
+              className={buttonVariants({ variant: "outline", size: "sm", className: "shrink-0 self-center" })}
+            >
+              <Pencil className="h-3.5 w-3.5" />
+              Edit profile
+            </Link>
           )}
         </div>
 

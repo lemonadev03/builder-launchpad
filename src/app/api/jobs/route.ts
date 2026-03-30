@@ -6,9 +6,13 @@ import {
   getActiveJobs,
   getActiveJobCountByUser,
 } from "@/lib/queries/job";
+import {
+  getCompanyByCreatedBy,
+  createCompanyForPoster,
+} from "@/lib/queries/company-profile";
 import { db } from "@/db";
-import { user, company } from "@/db/schema";
-import { eq, and } from "drizzle-orm";
+import { user } from "@/db/schema";
+import { eq } from "drizzle-orm";
 
 const MAX_ACTIVE_LISTINGS = 50;
 
@@ -45,23 +49,28 @@ export async function POST(request: Request) {
     );
   }
 
-  // Verify the company belongs to this user
-  const [comp] = await db
-    .select({ id: company.id })
-    .from(company)
-    .where(
-      and(
-        eq(company.id, parsed.data.companyId),
-        eq(company.createdBy, session.user.id),
-      ),
-    )
-    .limit(1);
+  // Resolve company: use existing, or auto-create from inline fields
+  let companyId = parsed.data.companyId;
 
-  if (!comp) {
-    return NextResponse.json(
-      { error: "Company not found or does not belong to you" },
-      { status: 404 },
-    );
+  if (!companyId) {
+    // Check if poster already has a company
+    const existing = await getCompanyByCreatedBy(session.user.id);
+
+    if (existing) {
+      companyId = existing.id;
+    } else if (parsed.data.company) {
+      // First listing — create company inline
+      const created = await createCompanyForPoster(
+        session.user.id,
+        parsed.data.company,
+      );
+      companyId = created.id;
+    } else {
+      return NextResponse.json(
+        { error: "Company info required for first listing. Provide companyId or company object." },
+        { status: 400 },
+      );
+    }
   }
 
   // Anti-abuse: max active listings
@@ -73,7 +82,10 @@ export async function POST(request: Request) {
     );
   }
 
-  const created = await createJob(session.user.id, parsed.data);
+  const created = await createJob(session.user.id, {
+    ...parsed.data,
+    companyId,
+  });
 
   return NextResponse.json({ job: created }, { status: 201 });
 }

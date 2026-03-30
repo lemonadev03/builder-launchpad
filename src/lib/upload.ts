@@ -69,6 +69,12 @@ export function generateCommunityS3Key(
   return `communities/${communityId}/${type}-${Date.now()}.jpg`;
 }
 
+// ── Company logos ──────────────────────────────────────────────────
+
+export function generateCompanyLogoS3Key(companyId: string): string {
+  return `companies/${companyId}/logo-${Date.now()}.jpg`;
+}
+
 // ── Post inline images ─────────────────────────────────────────────
 
 export const MAX_POST_IMAGE_SIZE = 5 * 1024 * 1024; // 5MB

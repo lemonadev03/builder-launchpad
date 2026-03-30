@@ -35,7 +35,10 @@ export type JobListingWithCompany = {
 
 // ── Mutations ───────────────────────────────────────────────────────
 
-export async function createJob(userId: string, data: CreateJobInput) {
+export async function createJob(
+  userId: string,
+  data: Omit<CreateJobInput, "companyId" | "company"> & { companyId: string },
+) {
   const [created] = await db
     .insert(jobListing)
     .values({

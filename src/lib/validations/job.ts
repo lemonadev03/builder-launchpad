@@ -1,12 +1,37 @@
 import { z } from "zod";
 
+export const companyProfileSchema = z.object({
+  name: z
+    .string()
+    .trim()
+    .min(1, "Company name is required")
+    .max(200, "Company name must be at most 200 characters"),
+  website: z
+    .string()
+    .trim()
+    .url("Website must be a valid URL")
+    .max(500)
+    .optional(),
+  description: z
+    .string()
+    .trim()
+    .max(200, "Description must be at most 200 characters")
+    .optional(),
+});
+
+export const updateCompanySchema = companyProfileSchema.partial();
+
+export type CompanyProfileInput = z.infer<typeof companyProfileSchema>;
+export type UpdateCompanyInput = z.infer<typeof updateCompanySchema>;
+
 export const createJobSchema = z.object({
   title: z
     .string()
     .trim()
     .min(1, "Title is required")
     .max(200, "Title must be at most 200 characters"),
-  companyId: z.string().min(1, "Company is required"),
+  companyId: z.string().min(1).optional(),
+  company: companyProfileSchema.optional(),
   description: z
     .string()
     .trim()
