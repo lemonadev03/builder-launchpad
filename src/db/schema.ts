@@ -88,6 +88,23 @@ export const verification = pgTable(
   (table) => [index("verification_identifier_idx").on(table.identifier)],
 );
 
+export const platformAdminInvite = pgTable(
+  "platform_admin_invite",
+  {
+    id: text("id").primaryKey(),
+    email: text("email").notNull().unique(),
+    invitedBy: text("invited_by")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+    acceptedAt: timestamp("accepted_at"),
+  },
+  (table) => [
+    index("platform_admin_invite_email_idx").on(table.email),
+    index("platform_admin_invite_invited_by_idx").on(table.invitedBy),
+  ],
+);
+
 // ── Profile ─────────────────────────────────────────────────────────
 
 export type SocialLinks = {

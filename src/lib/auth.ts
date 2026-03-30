@@ -73,6 +73,24 @@ export const auth = betterAuth({
             displayName: user.name,
             username,
           });
+
+          const [pendingInvite] = await db
+            .select({ id: schema.platformAdminInvite.id })
+            .from(schema.platformAdminInvite)
+            .where(eq(schema.platformAdminInvite.email, user.email.toLowerCase()))
+            .limit(1);
+
+          if (pendingInvite) {
+            await db
+              .update(schema.user)
+              .set({ isPlatformAdmin: true })
+              .where(eq(schema.user.id, user.id));
+
+            await db
+              .update(schema.platformAdminInvite)
+              .set({ acceptedAt: new Date() })
+              .where(eq(schema.platformAdminInvite.id, pendingInvite.id));
+          }
         },
       },
     },
