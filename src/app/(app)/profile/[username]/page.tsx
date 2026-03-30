@@ -4,6 +4,7 @@ import type { Metadata } from "next";
 import { GraduationCap } from "lucide-react";
 import { getProfileByUsername } from "@/lib/queries/profile";
 import { getUserCommunities } from "@/lib/queries/membership";
+import { getSession } from "@/lib/session";
 import { ProfileHeader } from "@/components/profile-header";
 import { ProfileTags } from "@/components/profile-tags";
 import { SocialLinks } from "@/components/social-links";
@@ -48,7 +49,11 @@ export default async function ProfilePage({ params }: Props) {
   const hasSocialLinks = Object.values(socialLinks).some(
     (v) => v && v.trim() !== "",
   );
-  const communities = await getUserCommunities(p.userId);
+  const [communities, session] = await Promise.all([
+    getUserCommunities(p.userId),
+    getSession(),
+  ]);
+  const isOwner = session?.user.id === p.userId;
 
   return (
     <div className="mx-auto max-w-2xl">
@@ -59,6 +64,7 @@ export default async function ProfilePage({ params }: Props) {
         avatarUrl={p.avatarUrl}
         bannerUrl={p.bannerUrl}
         location={p.location}
+        isOwner={isOwner}
       />
 
       <div className="mt-4 space-y-6 px-4 sm:px-6">

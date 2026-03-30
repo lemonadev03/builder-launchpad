@@ -1,4 +1,6 @@
-import { MapPin } from "lucide-react";
+import Link from "next/link";
+import { MapPin, Pencil } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 function getInitials(name: string): string {
   return name
@@ -17,6 +19,7 @@ interface ProfileHeaderProps {
   avatarUrl?: string | null;
   bannerUrl?: string | null;
   location?: string | null;
+  isOwner?: boolean;
 }
 
 export function ProfileHeader({
@@ -26,6 +29,7 @@ export function ProfileHeader({
   avatarUrl,
   bannerUrl,
   location,
+  isOwner,
 }: ProfileHeaderProps) {
   return (
     <div>
@@ -63,12 +67,21 @@ export function ProfileHeader({
           </div>
 
           {/* Name block */}
-          <div className="min-w-0 pb-1">
+          <div className="min-w-0 flex-1 pb-1">
             <h1 className="truncate text-xl font-semibold sm:text-2xl">
               {displayName}
             </h1>
             <p className="text-sm text-muted-foreground">@{username}</p>
           </div>
+
+          {isOwner && (
+            <Button variant="outline" size="sm" className="shrink-0 self-center" asChild>
+              <Link href="/settings/profile">
+                <Pencil className="h-3.5 w-3.5" />
+                Edit profile
+              </Link>
+            </Button>
+          )}
         </div>
 
         {/* Tagline + location */}
