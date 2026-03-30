@@ -105,3 +105,6 @@ export const checkReactionRateLimit = createRateLimiter(60, 60 * 60 * 1000);
 
 // 20 flags per user per day
 export const checkFlagRateLimit = createRateLimiter(20, 24 * 60 * 60 * 1000);
+
+// 60 directory searches per IP per minute
+export const checkDirectorySearchRateLimit = createRateLimiter(60, 60 * 1000);

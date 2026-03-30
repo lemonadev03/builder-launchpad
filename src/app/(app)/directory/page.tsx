@@ -1,8 +1,12 @@
 import Link from "next/link";
+import { Suspense } from "react";
 import type { Metadata } from "next";
 import { Users } from "lucide-react";
 import { getDirectoryProfiles } from "@/lib/queries/directory";
-import { ProfileCard } from "@/components/profile-card";
+import { getAllTags } from "@/lib/queries/profile";
+import { getListedCommunities } from "@/lib/queries/community";
+import { ProfileCard, ProfileCardSkeleton } from "@/components/profile-card";
+import { DirectoryFilters } from "@/components/directory-filters";
 
 export const metadata: Metadata = {
   title: "People Directory | Builder Launchpad",
@@ -37,14 +41,18 @@ export default async function DirectoryPage({ searchParams }: Props) {
     ? tagsParam.split(",").filter(Boolean)
     : undefined;
 
-  const { profiles, total } = await getDirectoryProfiles({
-    limit,
-    offset,
-    search: search || undefined,
-    tagSlugs,
-    location: location || undefined,
-    communityId: community || undefined,
-  });
+  const [{ profiles, total }, allTags, allCommunities] = await Promise.all([
+    getDirectoryProfiles({
+      limit,
+      offset,
+      search: search || undefined,
+      tagSlugs,
+      location: location || undefined,
+      communityId: community || undefined,
+    }),
+    getAllTags(),
+    getListedCommunities(),
+  ]);
 
   const totalPages = Math.ceil(total / limit);
   const hasFilters = !!(search || tagsParam || location || community);
@@ -70,6 +78,20 @@ export default async function DirectoryPage({ searchParams }: Props) {
         <span className="text-sm text-muted-foreground">
           {total} builder{total !== 1 ? "s" : ""}
         </span>
+      </div>
+
+      {/* Filters */}
+      <div className="mb-6">
+        <Suspense>
+          <DirectoryFilters
+            tags={allTags}
+            communities={allCommunities.map((c) => ({
+              id: c.id,
+              name: c.name,
+              slug: c.slug,
+            }))}
+          />
+        </Suspense>
       </div>
 
       {/* Results */}
