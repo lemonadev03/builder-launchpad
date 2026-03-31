@@ -1,4 +1,5 @@
 import { and, eq, or, count, sql } from "drizzle-orm";
+import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import { sisterLink, community } from "@/db/schema";
 import { getAncestorChain } from "@/lib/queries/community-tree";
@@ -179,7 +180,7 @@ export async function getAllSisterLinks(communityId: string) {
   return [...direct, ...inherited];
 }
 
-/** Count of direct sister links for anti-abuse */
+/** Count of active direct sister links for anti-abuse cap */
 export async function getDirectSisterLinkCount(
   communityId: string,
 ): Promise<number> {
@@ -187,9 +188,12 @@ export async function getDirectSisterLinkCount(
     .select({ count: count() })
     .from(sisterLink)
     .where(
-      or(
-        eq(sisterLink.communityAId, communityId),
-        eq(sisterLink.communityBId, communityId),
+      and(
+        or(
+          eq(sisterLink.communityAId, communityId),
+          eq(sisterLink.communityBId, communityId),
+        ),
+        eq(sisterLink.status, "active"),
       ),
     );
 
@@ -241,4 +245,40 @@ export async function checkDuplicateSisterLink(
   }
 
   return { exists: false };
+}
+
+// ── Platform-wide queries ──────────────────────────────────────────
+
+export type PlatformSisterLink = {
+  linkId: string;
+  status: "pending" | "active";
+  communityAId: string;
+  communityAName: string;
+  communityBId: string;
+  communityBName: string;
+  requestedCommunityId: string;
+  createdAt: Date;
+};
+
+/** Fetch every sister link on the platform with both community names resolved. */
+export async function getAllPlatformSisterLinks(): Promise<PlatformSisterLink[]> {
+  const commA = alias(community, "comm_a");
+  const commB = alias(community, "comm_b");
+
+  const rows = await db
+    .select({
+      linkId: sisterLink.id,
+      status: sisterLink.status,
+      communityAId: sisterLink.communityAId,
+      communityAName: commA.name,
+      communityBId: sisterLink.communityBId,
+      communityBName: commB.name,
+      requestedCommunityId: sisterLink.requestedCommunityId,
+      createdAt: sisterLink.createdAt,
+    })
+    .from(sisterLink)
+    .innerJoin(commA, eq(sisterLink.communityAId, commA.id))
+    .innerJoin(commB, eq(sisterLink.communityBId, commB.id));
+
+  return rows as PlatformSisterLink[];
 }

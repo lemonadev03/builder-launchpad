@@ -5,6 +5,18 @@ import { community, membership } from "@/db/schema";
 const MAX_DEPTH = 3; // 0-indexed: root=0, max child depth=3 → 4 levels
 const MAX_CHILDREN = 50;
 
+export type TreeNode = {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  depth: number;
+  subTierLabel: string | null;
+  memberCount: number;
+  isArchived: boolean;
+  children: TreeNode[];
+};
+
 /**
  * Get the full ancestor chain for a community, from immediate parent to root.
  */
@@ -192,18 +204,6 @@ export async function getCommunityTree(
   opts?: { includeArchived?: boolean },
 ) {
   const includeArchived = opts?.includeArchived ?? false;
-
-  type TreeNode = {
-    id: string;
-    name: string;
-    slug: string;
-    logoUrl: string | null;
-    depth: number;
-    subTierLabel: string | null;
-    memberCount: number;
-    isArchived: boolean;
-    children: TreeNode[];
-  };
 
   async function buildNode(communityId: string): Promise<TreeNode | null> {
     const conditions = [eq(community.id, communityId)];

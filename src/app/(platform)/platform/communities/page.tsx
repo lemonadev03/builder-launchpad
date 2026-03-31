@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Building2 } from "lucide-react";
+import { Building2, GitBranch } from "lucide-react";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -93,7 +94,15 @@ export default async function PlatformCommunitiesPage({ searchParams }: Props) {
                 run archive or feature actions.
               </CardDescription>
             </div>
-            <PlatformCreateCommunity />
+            <div className="flex items-center gap-2">
+              <Link href="/platform/communities/relationships">
+                <Button variant="outline" size="sm" className="gap-1.5">
+                  <GitBranch className="h-3.5 w-3.5" />
+                  Relationships
+                </Button>
+              </Link>
+              <PlatformCreateCommunity />
+            </div>
           </div>
         </CardHeader>
         <CardContent>

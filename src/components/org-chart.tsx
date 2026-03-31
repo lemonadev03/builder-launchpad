@@ -6,18 +6,7 @@ import { ChevronDown, ChevronRight, Users } from "lucide-react";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
-
-interface TreeNode {
-  id: string;
-  name: string;
-  slug: string;
-  logoUrl: string | null;
-  depth: number;
-  subTierLabel: string | null;
-  memberCount: number;
-  isArchived: boolean;
-  children: TreeNode[];
-}
+import type { TreeNode } from "@/lib/queries/community-tree";
 
 interface OrgChartProps {
   tree: TreeNode;
