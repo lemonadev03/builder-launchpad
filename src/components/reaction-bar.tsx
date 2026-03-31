@@ -20,10 +20,30 @@ interface ReactionBarProps {
   compact?: boolean;
 }
 
-type OptimisticState = {
+type ReactionState = {
   counts: Record<string, number>;
   userReactions: string[];
 };
+
+function applyToggle(
+  state: ReactionState,
+  type: ReactionType,
+  action: "add" | "remove",
+): ReactionState {
+  const counts = { ...state.counts };
+  const userReactions = [...state.userReactions];
+
+  if (action === "add") {
+    counts[type] = (counts[type] ?? 0) + 1;
+    if (!userReactions.includes(type)) userReactions.push(type);
+  } else {
+    counts[type] = Math.max(0, (counts[type] ?? 0) - 1);
+    const idx = userReactions.indexOf(type);
+    if (idx >= 0) userReactions.splice(idx, 1);
+  }
+
+  return { counts, userReactions };
+}
 
 export function ReactionBar({
   targetType,
@@ -33,29 +53,19 @@ export function ReactionBar({
   compact = false,
 }: ReactionBarProps) {
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [isPending, startTransition] = useTransition();
+  const [, startTransition] = useTransition();
 
+  // Real client state — updated after API call succeeds
+  const [confirmed, setConfirmed] = useState<ReactionState>({
+    counts: initialCounts,
+    userReactions: initialUserReactions,
+  });
+
+  // Optimistic layer on top of confirmed state
   const [optimistic, setOptimistic] = useOptimistic<
-    OptimisticState,
+    ReactionState,
     { type: ReactionType; action: "add" | "remove" }
-  >(
-    { counts: initialCounts, userReactions: initialUserReactions },
-    (state, { type, action }) => {
-      const newCounts = { ...state.counts };
-      const newUserReactions = [...state.userReactions];
-
-      if (action === "add") {
-        newCounts[type] = (newCounts[type] ?? 0) + 1;
-        if (!newUserReactions.includes(type)) newUserReactions.push(type);
-      } else {
-        newCounts[type] = Math.max(0, (newCounts[type] ?? 0) - 1);
-        const idx = newUserReactions.indexOf(type);
-        if (idx >= 0) newUserReactions.splice(idx, 1);
-      }
-
-      return { counts: newCounts, userReactions: newUserReactions };
-    },
-  );
+  >(confirmed, (state, { type, action }) => applyToggle(state, type, action));
 
   async function toggleReaction(type: ReactionType) {
     const isActive = optimistic.userReactions.includes(type);
@@ -65,11 +75,16 @@ export function ReactionBar({
       setOptimistic({ type, action });
       setPickerOpen(false);
 
-      await fetch("/api/reactions", {
+      const res = await fetch("/api/reactions", {
         method: isActive ? "DELETE" : "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ targetType, targetId, reactionType: type }),
       });
+
+      if (res.ok) {
+        // Commit the change to real state
+        setConfirmed((prev) => applyToggle(prev, type, action));
+      }
     });
   }
 
@@ -87,7 +102,6 @@ export function ReactionBar({
           <button
             key={r.type}
             onClick={() => toggleReaction(r.type)}
-            disabled={isPending}
             className={cn(
               "inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors",
               isUserReaction
@@ -119,7 +133,6 @@ export function ReactionBar({
               <button
                 key={r.type}
                 onClick={() => toggleReaction(r.type)}
-                disabled={isPending}
                 className={cn(
                   "rounded-md p-1.5 transition-colors hover:bg-muted",
                   optimistic.userReactions.includes(r.type) && "bg-primary/10",
