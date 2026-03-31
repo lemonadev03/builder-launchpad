@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { getCommunityBySlug } from "@/lib/queries/community";
 import { getPendingJoinRequests } from "@/lib/queries/join-request";
@@ -9,7 +9,7 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export default async function RequestsPage({ params }: Props) {
+export default async function AdminRequestsPage({ params }: Props) {
   const { slug } = await params;
   const session = await requireSession();
 
@@ -21,7 +21,7 @@ export default async function RequestsPage({ params }: Props) {
     community.id,
     "community.manage_members",
   );
-  if (!canManage) notFound();
+  if (!canManage) redirect(`/admin/${slug}`);
 
   const requests = await getPendingJoinRequests(community.id);
 

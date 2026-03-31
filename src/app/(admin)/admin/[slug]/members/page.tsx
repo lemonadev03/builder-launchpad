@@ -9,7 +9,7 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export default async function ManageMembersPage({ params }: Props) {
+export default async function AdminMembersPage({ params }: Props) {
   const { slug } = await params;
   const session = await requireSession();
 
@@ -21,7 +21,7 @@ export default async function ManageMembersPage({ params }: Props) {
     community.id,
     "community.manage_members",
   );
-  if (!canManage) redirect(`/communities/${slug}`);
+  if (!canManage) redirect(`/admin/${slug}`);
 
   const members = await getMembersByCommunity(community.id);
 

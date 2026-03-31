@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { requireSession } from "@/lib/session";
 import { getCommunityBySlug } from "@/lib/queries/community";
 import { getInvitesByCommunity } from "@/lib/queries/invite";
@@ -9,7 +9,7 @@ interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export default async function InvitesPage({ params }: Props) {
+export default async function AdminInvitesPage({ params }: Props) {
   const { slug } = await params;
   const session = await requireSession();
 
@@ -21,14 +21,9 @@ export default async function InvitesPage({ params }: Props) {
     community.id,
     "member.invite",
   );
-  if (!canManage) notFound();
+  if (!canManage) redirect(`/admin/${slug}`);
 
   const invites = await getInvitesByCommunity(community.id);
 
-  return (
-    <InviteManager
-      initialInvites={invites}
-      communitySlug={slug}
-    />
-  );
+  return <InviteManager initialInvites={invites} communitySlug={slug} />;
 }

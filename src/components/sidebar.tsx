@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { ArrowLeft, LogOut, Settings } from "lucide-react";
+import { ArrowLeft, LogOut, Settings, Shield } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV_SETS = {
@@ -26,10 +26,15 @@ interface SidebarProps {
   nav?: keyof typeof NAV_SETS;
   header?: React.ReactNode;
   backHref?: string;
+  showAdminLink?: boolean;
 }
 
-export function Sidebar({ nav = "default", header, backHref }: SidebarProps) {
-  const items = NAV_SETS[nav];
+export function Sidebar({ nav = "default", header, backHref, showAdminLink }: SidebarProps) {
+  const baseItems = NAV_SETS[nav];
+  const items =
+    showAdminLink && nav === "default"
+      ? [...baseItems, { label: "Admin", href: "/admin", icon: Shield }]
+      : baseItems;
   const pathname = usePathname();
   const router = useRouter();
   const { data: session } = useSession();

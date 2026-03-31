@@ -45,7 +45,7 @@ const ACTION_VARIANTS: Record<string, "default" | "secondary" | "destructive" | 
   remove_member: "destructive",
 };
 
-export default async function ModerationLogPage({
+export default async function AdminModerationLogPage({
   params,
   searchParams,
 }: Props) {
@@ -60,7 +60,6 @@ export default async function ModerationLogPage({
   const c = await getCommunityBySlug(slug);
   if (!c || c.archivedAt) notFound();
 
-  // Admin-only access
   const canManage = await hasPermission(
     session.user.id,
     c.id,
@@ -86,12 +85,13 @@ export default async function ModerationLogPage({
   ]);
 
   const totalPages = Math.ceil(total / limit);
+  const basePath = `/admin/${slug}/moderation/log`;
 
   return (
     <div>
       <div className="mb-6">
         <Link
-          href={`/communities/${slug}/manage/moderation`}
+          href={`/admin/${slug}/moderation`}
           className="mb-3 flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground"
         >
           <ArrowLeft className="h-3.5 w-3.5" />
@@ -104,16 +104,14 @@ export default async function ModerationLogPage({
         </div>
       </div>
 
-      {/* Filters */}
       <div className="mb-6 flex flex-wrap gap-4">
-        {/* Action filter */}
         <div>
           <p className="mb-1 text-xs font-medium text-muted-foreground">
             Action
           </p>
           <div className="flex flex-wrap gap-1">
             <Link
-              href={`/communities/${slug}/manage/moderation/log${filterModerator ? `?moderator=${filterModerator}` : ""}`}
+              href={`${basePath}${filterModerator ? `?moderator=${filterModerator}` : ""}`}
               className={`rounded-md px-2 py-1 text-xs transition-colors ${
                 !filterAction
                   ? "bg-primary text-primary-foreground"
@@ -125,7 +123,7 @@ export default async function ModerationLogPage({
             {Object.entries(ACTION_LABELS).map(([key, label]) => (
               <Link
                 key={key}
-                href={`/communities/${slug}/manage/moderation/log?action=${key}${filterModerator ? `&moderator=${filterModerator}` : ""}`}
+                href={`${basePath}?action=${key}${filterModerator ? `&moderator=${filterModerator}` : ""}`}
                 className={`rounded-md px-2 py-1 text-xs transition-colors ${
                   filterAction === key
                     ? "bg-primary text-primary-foreground"
@@ -138,7 +136,6 @@ export default async function ModerationLogPage({
           </div>
         </div>
 
-        {/* Moderator filter */}
         {moderators.length > 1 && (
           <div>
             <p className="mb-1 text-xs font-medium text-muted-foreground">
@@ -146,7 +143,7 @@ export default async function ModerationLogPage({
             </p>
             <div className="flex flex-wrap gap-1">
               <Link
-                href={`/communities/${slug}/manage/moderation/log${filterAction ? `?action=${filterAction}` : ""}`}
+                href={`${basePath}${filterAction ? `?action=${filterAction}` : ""}`}
                 className={`rounded-md px-2 py-1 text-xs transition-colors ${
                   !filterModerator
                     ? "bg-primary text-primary-foreground"
@@ -158,7 +155,7 @@ export default async function ModerationLogPage({
               {moderators.map((m) => (
                 <Link
                   key={m.moderatorId}
-                  href={`/communities/${slug}/manage/moderation/log?moderator=${m.moderatorId}${filterAction ? `&action=${filterAction}` : ""}`}
+                  href={`${basePath}?moderator=${m.moderatorId}${filterAction ? `&action=${filterAction}` : ""}`}
                   className={`rounded-md px-2 py-1 text-xs transition-colors ${
                     filterModerator === m.moderatorId
                       ? "bg-primary text-primary-foreground"
@@ -173,7 +170,6 @@ export default async function ModerationLogPage({
         )}
       </div>
 
-      {/* Log entries */}
       {actions.length === 0 ? (
         <p className="rounded-lg border border-dashed p-6 text-center text-sm text-muted-foreground">
           No moderation actions recorded.
@@ -193,13 +189,9 @@ export default async function ModerationLogPage({
                   {ACTION_LABELS[a.action] ?? a.action}
                 </Badge>
                 <div>
-                  <span className="text-sm">
-                    {a.moderatorDisplayName}
-                  </span>
+                  <span className="text-sm">{a.moderatorDisplayName}</span>
                   {a.reason && (
-                    <p className="text-xs text-muted-foreground">
-                      {a.reason}
-                    </p>
+                    <p className="text-xs text-muted-foreground">{a.reason}</p>
                   )}
                 </div>
               </div>
@@ -219,12 +211,11 @@ export default async function ModerationLogPage({
         </div>
       )}
 
-      {/* Pagination */}
       {totalPages > 1 && (
         <div className="mt-6 flex items-center justify-center gap-2">
           {page > 1 && (
             <Link
-              href={`/communities/${slug}/manage/moderation/log?page=${page - 1}${filterAction ? `&action=${filterAction}` : ""}${filterModerator ? `&moderator=${filterModerator}` : ""}`}
+              href={`${basePath}?page=${page - 1}${filterAction ? `&action=${filterAction}` : ""}${filterModerator ? `&moderator=${filterModerator}` : ""}`}
               className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
             >
               Previous
@@ -235,7 +226,7 @@ export default async function ModerationLogPage({
           </span>
           {page < totalPages && (
             <Link
-              href={`/communities/${slug}/manage/moderation/log?page=${page + 1}${filterAction ? `&action=${filterAction}` : ""}${filterModerator ? `&moderator=${filterModerator}` : ""}`}
+              href={`${basePath}?page=${page + 1}${filterAction ? `&action=${filterAction}` : ""}${filterModerator ? `&moderator=${filterModerator}` : ""}`}
               className="rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-muted"
             >
               Next

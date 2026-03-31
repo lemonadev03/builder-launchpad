@@ -40,7 +40,7 @@ function extractPlainText(content: unknown): string {
   );
 }
 
-export default async function ModerationPage({ params, searchParams }: Props) {
+export default async function AdminModerationPage({ params, searchParams }: Props) {
   const { slug } = await params;
   const { community: filterCommunity } = await searchParams;
   const session = await requireSession();
@@ -54,11 +54,9 @@ export default async function ModerationPage({ params, searchParams }: Props) {
   ]);
   if (!canModerate) notFound();
 
-  // Get this community + all descendants for cascade
   const descendants = await getAllDescendants(c.id);
   const allCommunityIds = [c.id, ...descendants.map((d) => d.id)];
 
-  // Apply sub-community filter
   const filteredIds = filterCommunity
     ? allCommunityIds.filter((id) => id === filterCommunity)
     : allCommunityIds;
@@ -74,7 +72,6 @@ export default async function ModerationPage({ params, searchParams }: Props) {
       getSuspendedMembers(allCommunityIds),
     ]);
 
-  // Batch-fetch previews (2 queries instead of N)
   const postFlagIds = flags
     .filter((f) => f.targetType === "post")
     .map((f) => f.targetId);
@@ -104,7 +101,7 @@ export default async function ModerationPage({ params, searchParams }: Props) {
         </div>
         {isAdmin && (
           <Link
-            href={`/communities/${slug}/manage/moderation/log`}
+            href={`/admin/${slug}/moderation/log`}
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground"
           >
             <ScrollText className="h-4 w-4" />
@@ -113,7 +110,6 @@ export default async function ModerationPage({ params, searchParams }: Props) {
         )}
       </div>
 
-      {/* Stats */}
       <div className="mb-6 grid grid-cols-2 gap-4">
         <div className="rounded-lg border p-4">
           <p className="text-2xl font-bold">{openCount}</p>
@@ -129,7 +125,6 @@ export default async function ModerationPage({ params, searchParams }: Props) {
         </div>
       </div>
 
-      {/* Sub-community filter */}
       {descendants.length > 0 && (
         <div className="mb-6">
           <p className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
@@ -137,7 +132,7 @@ export default async function ModerationPage({ params, searchParams }: Props) {
           </p>
           <div className="flex flex-wrap gap-1.5">
             <Link
-              href={`/communities/${slug}/manage/moderation`}
+              href={`/admin/${slug}/moderation`}
               className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
                 !filterCommunity
                   ? "bg-primary text-primary-foreground"
@@ -147,7 +142,7 @@ export default async function ModerationPage({ params, searchParams }: Props) {
               All
             </Link>
             <Link
-              href={`/communities/${slug}/manage/moderation?community=${c.id}`}
+              href={`/admin/${slug}/moderation?community=${c.id}`}
               className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
                 filterCommunity === c.id
                   ? "bg-primary text-primary-foreground"
@@ -159,7 +154,7 @@ export default async function ModerationPage({ params, searchParams }: Props) {
             {descendants.map((d) => (
               <Link
                 key={d.id}
-                href={`/communities/${slug}/manage/moderation?community=${d.id}`}
+                href={`/admin/${slug}/moderation?community=${d.id}`}
                 className={`rounded-md px-2.5 py-1 text-xs transition-colors ${
                   filterCommunity === d.id
                     ? "bg-primary text-primary-foreground"
@@ -173,7 +168,6 @@ export default async function ModerationPage({ params, searchParams }: Props) {
         </div>
       )}
 
-      {/* Flagged content queue */}
       <div className="mb-8">
         <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
           <AlertTriangle className="h-4 w-4" />
@@ -187,10 +181,7 @@ export default async function ModerationPage({ params, searchParams }: Props) {
         ) : (
           <div className="space-y-3">
             {enrichedFlags.map((f) => (
-              <div
-                key={f.id}
-                className="rounded-lg border p-4"
-              >
+              <div key={f.id} className="rounded-lg border p-4">
                 <div className="mb-2 flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Badge variant="outline" className="text-xs">
@@ -216,7 +207,6 @@ export default async function ModerationPage({ params, searchParams }: Props) {
                   </time>
                 </div>
 
-                {/* Content preview */}
                 <div className="mb-2 rounded-md bg-muted/50 px-3 py-2">
                   {f.targetType === "post" && f.preview ? (
                     <Link
@@ -263,9 +253,7 @@ export default async function ModerationPage({ params, searchParams }: Props) {
                         {f.reporterDisplayName.slice(0, 2).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
-                    <span>
-                      Reported by {f.reporterDisplayName}
-                    </span>
+                    <span>Reported by {f.reporterDisplayName}</span>
                   </div>
                   <ModerationActions
                     communitySlug={slug}
@@ -279,7 +267,6 @@ export default async function ModerationPage({ params, searchParams }: Props) {
         )}
       </div>
 
-      {/* Suspended members */}
       <div>
         <h3 className="mb-3 flex items-center gap-2 text-sm font-semibold">
           <UserX className="h-4 w-4" />
@@ -310,8 +297,7 @@ export default async function ModerationPage({ params, searchParams }: Props) {
                     <p className="text-sm font-medium">{m.displayName}</p>
                     <p className="text-xs text-muted-foreground">
                       @{m.username}
-                      {m.communityName !== c.name &&
-                        ` · ${m.communityName}`}
+                      {m.communityName !== c.name && ` · ${m.communityName}`}
                     </p>
                   </div>
                 </div>

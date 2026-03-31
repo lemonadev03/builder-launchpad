@@ -6,6 +6,8 @@ interface AppShellProps {
   sidebarNav?: "default" | "platform";
   sidebarHeader?: React.ReactNode;
   sidebarBackHref?: string;
+  sidebarSlot?: React.ReactNode;
+  showAdminLink?: boolean;
 }
 
 export function AppShell({
@@ -13,14 +15,23 @@ export function AppShell({
   sidebarNav,
   sidebarHeader,
   sidebarBackHref,
+  sidebarSlot,
+  showAdminLink,
 }: AppShellProps) {
   return (
     <div className="flex h-screen">
-      <Sidebar nav={sidebarNav} header={sidebarHeader} backHref={sidebarBackHref} />
+      {sidebarSlot ?? (
+        <Sidebar
+          nav={sidebarNav}
+          header={sidebarHeader}
+          backHref={sidebarBackHref}
+          showAdminLink={showAdminLink}
+        />
+      )}
       <main className="flex-1 overflow-y-auto pb-16 md:pb-0">
         <div className="mx-auto max-w-5xl px-4 py-6">{children}</div>
       </main>
-      <BottomNav />
+      <BottomNav showAdminLink={showAdminLink} />
     </div>
   );
 }

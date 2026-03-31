@@ -64,6 +64,7 @@ export default async function CommunityPage({ params }: Props) {
   let isSuspended = false;
   let requestStatus: string | null = null;
   let canCreateSub = false;
+  let canManage = false;
   if (session) {
     const mem = await getMembership(session.user.id, c.id);
     isMember = mem?.status === "active";
@@ -73,6 +74,7 @@ export default async function CommunityPage({ params }: Props) {
     }
     if (isMember) {
       canCreateSub = await hasPermission(session.user.id, c.id, "community.edit");
+      canManage = await hasPermission(session.user.id, c.id, "content.moderate");
     }
   }
 
@@ -147,12 +149,14 @@ export default async function CommunityPage({ params }: Props) {
           {isMember && session && (
             <div className="flex items-center gap-2">
               <LeaveButton communitySlug={slug} userId={session.user.id} />
-              <a
-                href={`/communities/${slug}/manage`}
-                className="text-sm text-muted-foreground hover:text-foreground"
-              >
-                Manage &rarr;
-              </a>
+              {canManage && (
+                <a
+                  href={`/admin/${slug}`}
+                  className="text-sm text-muted-foreground hover:text-foreground"
+                >
+                  Manage &rarr;
+                </a>
+              )}
             </div>
           )}
         </div>

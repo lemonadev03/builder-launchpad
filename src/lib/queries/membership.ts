@@ -1,4 +1,4 @@
-import { and, eq, count, inArray, sql } from "drizzle-orm";
+import { and, eq, count, inArray, sql, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { membership, profile, community } from "@/db/schema";
 import { cascadeLeaveDescendants } from "@/lib/queries/membership-inheritance";
@@ -206,6 +206,49 @@ export async function getSuspendedMembers(communityIds: string[]) {
         eq(membership.status, "suspended"),
       ),
     );
+}
+
+export async function getAdminCommunities(userId: string) {
+  return db
+    .select({
+      membershipId: membership.id,
+      communityId: membership.communityId,
+      role: membership.role,
+      joinedAt: membership.joinedAt,
+      communityName: community.name,
+      communitySlug: community.slug,
+      communityLogoUrl: community.logoUrl,
+      communityDescription: community.description,
+    })
+    .from(membership)
+    .innerJoin(community, eq(membership.communityId, community.id))
+    .where(
+      and(
+        eq(membership.userId, userId),
+        eq(membership.status, "active"),
+        inArray(membership.role, ["admin", "moderator"]),
+        isNull(community.archivedAt),
+      ),
+    )
+    .orderBy(community.name);
+}
+
+export async function isAdminOfAnyCommunity(userId: string) {
+  const rows = await db
+    .select({ id: membership.id })
+    .from(membership)
+    .innerJoin(community, eq(membership.communityId, community.id))
+    .where(
+      and(
+        eq(membership.userId, userId),
+        eq(membership.status, "active"),
+        inArray(membership.role, ["admin", "moderator"]),
+        isNull(community.archivedAt),
+      ),
+    )
+    .limit(1);
+
+  return rows.length > 0;
 }
 
 export async function getUserCommunities(userId: string) {

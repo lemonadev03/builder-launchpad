@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Users, Settings, Layers, Shield, LinkIcon } from "lucide-react";
+import { Users, Settings, Shield, LinkIcon, Layers } from "lucide-react";
 import { requireSession } from "@/lib/session";
 import { getCommunityBySlug } from "@/lib/queries/community";
 import { getMemberCount } from "@/lib/queries/membership";
@@ -8,13 +8,12 @@ import { getPendingJoinRequestCount } from "@/lib/queries/join-request";
 import { getOpenFlagCount } from "@/lib/queries/flag";
 import { getAllDescendants } from "@/lib/queries/community-tree";
 import { hasPermission } from "@/lib/permissions";
-import { Badge } from "@/components/ui/badge";
 
 interface Props {
   params: Promise<{ slug: string }>;
 }
 
-export default async function CommunityDashboardPage({ params }: Props) {
+export default async function AdminDashboardPage({ params }: Props) {
   const { slug } = await params;
   const session = await requireSession();
 
@@ -26,7 +25,6 @@ export default async function CommunityDashboardPage({ params }: Props) {
     community.id,
     "community.manage_settings",
   );
-  if (!canManage) notFound();
 
   const descendants = await getAllDescendants(community.id);
   const allCommunityIds = [community.id, ...descendants.map((d) => d.id)];
@@ -39,39 +37,39 @@ export default async function CommunityDashboardPage({ params }: Props) {
 
   const links = [
     {
-      href: `/communities/${slug}/manage/settings`,
+      href: `/admin/${slug}/settings`,
       icon: Settings,
       label: "Settings",
       description: "Community details, visibility, join policy",
-      enabled: true,
+      visible: canManage,
     },
     {
-      href: `/communities/${slug}/manage/members`,
+      href: `/admin/${slug}/members`,
       icon: Users,
       label: "Members",
       description: "Manage roles and membership",
-      enabled: true,
+      visible: canManage,
     },
     {
-      href: `/communities/${slug}/manage/invites`,
+      href: `/admin/${slug}/invites`,
       icon: LinkIcon,
       label: "Invites",
       description: "Generate and manage invite links",
-      enabled: true,
+      visible: canManage,
     },
     {
       href: `/communities/${slug}`,
       icon: Layers,
       label: community.subTierLabel || "Sub-communities",
       description: "View and create sub-communities",
-      enabled: true,
+      visible: canManage,
     },
     {
-      href: `/communities/${slug}/manage/moderation`,
+      href: `/admin/${slug}/moderation`,
       icon: Shield,
       label: "Moderation",
       description: "Content flags and member actions",
-      enabled: true,
+      visible: true,
     },
   ];
 
@@ -81,7 +79,6 @@ export default async function CommunityDashboardPage({ params }: Props) {
         <h2 className="text-lg font-semibold">Dashboard</h2>
       </div>
 
-      {/* Stats */}
       <div className="mb-8 grid grid-cols-3 gap-4">
         <div className="rounded-lg border p-4">
           <p className="text-2xl font-bold">{memberCount}</p>
@@ -103,49 +100,27 @@ export default async function CommunityDashboardPage({ params }: Props) {
         </div>
       </div>
 
-      {/* Quick Links */}
       <div className="space-y-2">
-        {links.map((link) => {
-          const Icon = link.icon;
-
-          if (!link.enabled) {
+        {links
+          .filter((l) => l.visible)
+          .map((link) => {
+            const Icon = link.icon;
             return (
-              <div
+              <Link
                 key={link.label}
-                className="flex items-center gap-3 rounded-lg border p-4 opacity-50"
+                href={link.href}
+                className="flex items-center gap-3 rounded-lg border p-4 transition-colors hover:bg-muted/50"
               >
                 <Icon className="h-5 w-5 text-muted-foreground" />
                 <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <p className="text-sm font-medium">{link.label}</p>
-                    <Badge variant="outline" className="text-xs">
-                      Coming soon
-                    </Badge>
-                  </div>
+                  <p className="text-sm font-medium">{link.label}</p>
                   <p className="text-xs text-muted-foreground">
                     {link.description}
                   </p>
                 </div>
-              </div>
+              </Link>
             );
-          }
-
-          return (
-            <Link
-              key={link.label}
-              href={link.href}
-              className="flex items-center gap-3 rounded-lg border p-4 transition-colors hover:bg-muted/50"
-            >
-              <Icon className="h-5 w-5 text-muted-foreground" />
-              <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{link.label}</p>
-                <p className="text-xs text-muted-foreground">
-                  {link.description}
-                </p>
-              </div>
-            </Link>
-          );
-        })}
+          })}
       </div>
     </div>
   );

@@ -30,6 +30,7 @@ interface CommunityData {
 
 interface CommunitySettingsFormProps {
   community: CommunityData;
+  basePath?: string;
 }
 
 const JOIN_POLICY_OPTIONS = [
@@ -40,6 +41,7 @@ const JOIN_POLICY_OPTIONS = [
 
 export function CommunitySettingsForm({
   community,
+  basePath,
 }: CommunitySettingsFormProps) {
   const router = useRouter();
   const [saving, setSaving] = useState(false);
@@ -119,7 +121,10 @@ export function CommunitySettingsForm({
 
       // If slug changed, redirect to new URL
       if (slug !== community.slug) {
-        router.push(`/communities/${slug}/manage/settings`);
+        const base = basePath
+          ? basePath.replace(community.slug, slug)
+          : `/admin/${slug}`;
+        router.push(`${base}/settings`);
       } else {
         router.refresh();
       }

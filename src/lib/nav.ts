@@ -9,6 +9,11 @@ import {
   UserCog,
   Tag,
   Shield,
+  LayoutDashboard,
+  Settings,
+  LinkIcon,
+  UserPlus,
+  FileText,
   type LucideIcon,
 } from "lucide-react";
 
@@ -34,3 +39,26 @@ export const PLATFORM_NAV: NavItem[] = [
   { label: "Tags", href: "/platform/settings", icon: Tag },
   { label: "Moderation", href: "/platform/moderation", icon: Shield },
 ];
+
+export function getAdminCommunityNav(
+  slug: string,
+  role: "admin" | "moderator",
+): NavItem[] {
+  const all: NavItem[] = [
+    { label: "Dashboard", href: `/admin/${slug}`, icon: LayoutDashboard },
+    { label: "Settings", href: `/admin/${slug}/settings`, icon: Settings },
+    { label: "Members", href: `/admin/${slug}/members`, icon: Users },
+    { label: "Invites", href: `/admin/${slug}/invites`, icon: LinkIcon },
+    { label: "Requests", href: `/admin/${slug}/requests`, icon: UserPlus },
+    { label: "Posts", href: `/admin/${slug}/posts`, icon: FileText },
+    { label: "Moderation", href: `/admin/${slug}/moderation`, icon: Shield },
+  ];
+
+  if (role === "moderator") {
+    return all.filter((item) =>
+      ["Dashboard", "Moderation"].includes(item.label),
+    );
+  }
+
+  return all;
+}

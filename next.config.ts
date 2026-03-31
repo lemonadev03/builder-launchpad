@@ -20,6 +20,20 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  async redirects() {
+    return [
+      {
+        source: "/communities/:slug/manage/:path*",
+        destination: "/admin/:slug/:path*",
+        permanent: true,
+      },
+      {
+        source: "/communities/:slug/manage",
+        destination: "/admin/:slug",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

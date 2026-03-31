@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { AppShell } from "@/components/app-shell";
 import { getSession } from "@/lib/session";
 import { getProfileByUserId } from "@/lib/queries/profile";
+import { isAdminOfAnyCommunity } from "@/lib/queries/membership";
 
 export default async function AppLayout({
   children,
@@ -26,5 +27,7 @@ export default async function AppLayout({
     );
   }
 
-  return <AppShell>{children}</AppShell>;
+  const showAdminLink = await isAdminOfAnyCommunity(session.user.id);
+
+  return <AppShell showAdminLink={showAdminLink}>{children}</AppShell>;
 }
