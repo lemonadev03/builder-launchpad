@@ -1,10 +1,3 @@
-import Link from "next/link";
-import {
-  Building2,
-  Settings2,
-  Shield,
-  Users,
-} from "lucide-react";
 import {
   Card,
   CardContent,
@@ -18,37 +11,6 @@ import {
   listPendingPlatformAdminInvites,
   listPlatformAdmins,
 } from "@/lib/platform-admin";
-
-const SECTIONS = [
-  {
-    title: "Communities",
-    href: "/platform/communities",
-    description: "Archive, review, and inspect the full community tree.",
-    icon: Building2,
-    ticket: "15.2",
-  },
-  {
-    title: "Users",
-    href: "/platform/users",
-    description: "Handle platform-level user actions and access states.",
-    icon: Users,
-    ticket: "15.3",
-  },
-  {
-    title: "Moderation",
-    href: "/platform/moderation",
-    description: "Review the global flag queue across all communities.",
-    icon: Shield,
-    ticket: "15.4",
-  },
-  {
-    title: "Settings",
-    href: "/platform/settings",
-    description: "Manage the platform-wide profile tags catalog and shared stats.",
-    icon: Settings2,
-    ticket: "15.5",
-  },
-];
 
 export default async function PlatformDashboardPage() {
   const [stats, admins, pendingInvites] = await Promise.all([
@@ -158,26 +120,6 @@ export default async function PlatformDashboardPage() {
         </Card>
       </section>
 
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        {SECTIONS.map((section) => (
-          <Link key={section.href} href={section.href}>
-            <Card className="h-full border-dashed hover:border-foreground/20">
-              <CardHeader>
-                <div className="mb-3 inline-flex h-10 w-10 items-center justify-center rounded-2xl bg-muted">
-                  <section.icon className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <CardTitle>{section.title}</CardTitle>
-                <CardDescription>{section.description}</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-xs font-medium uppercase tracking-[0.12em] text-muted-foreground">
-                  Next up: {section.ticket}
-                </p>
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
-      </section>
     </div>
   );
 }
