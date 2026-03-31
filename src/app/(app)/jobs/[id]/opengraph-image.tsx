@@ -46,101 +46,66 @@ export default async function Image({
   }
 
   const logoSrc = await resolveImageSrc(job.companyLogoUrl);
+  const details = [
+    job.employmentType ? typeLabel[job.employmentType] ?? job.employmentType : null,
+    job.location,
+    job.remote ? "Remote" : null,
+  ].filter(Boolean).join("  ·  ");
 
   return new ImageResponse(
     (
       <OgCard>
-        {/* Company row */}
+        {/* Top: company */}
         <div style={{ display: "flex", alignItems: "center" }}>
           {logoSrc ? (
             <img
               src={logoSrc}
-              width={52}
-              height={52}
-              style={{ borderRadius: 10, objectFit: "cover", marginRight: 16 }}
+              width={48}
+              height={48}
+              style={{ borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
             />
           ) : (
             <div
               style={{
-                width: 52,
-                height: 52,
-                borderRadius: 10,
+                width: 48,
+                height: 48,
+                borderRadius: 12,
                 background: OG_PRIMARY,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 20,
+                fontSize: 18,
                 fontWeight: 700,
                 color: OG_TEXT,
-                marginRight: 16,
+                flexShrink: 0,
               }}
             >
               {getInitials(job.companyName)}
             </div>
           )}
-          <div style={{ fontSize: 24, color: OG_MUTED }}>
+          <div style={{ display: "flex", fontSize: 22, color: OG_MUTED, marginLeft: 16 }}>
             {job.companyName}
           </div>
         </div>
 
-        {/* Job title */}
-        <div
-          style={{
-            fontSize: 48,
-            fontWeight: 700,
-            color: OG_TEXT,
-            lineHeight: 1.15,
-            marginTop: 28,
-            display: "flex",
-          }}
-        >
-          {job.title.length > 60 ? job.title.slice(0, 60) + "..." : job.title}
-        </div>
-
-        {/* Spacer */}
-        <div style={{ display: "flex", flex: 1 }} />
-
-        {/* Badges row */}
-        <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap" }}>
-          {job.employmentType && (
-            <div
-              style={{
-                fontSize: 16,
-                color: OG_TEXT,
-                background: "rgba(255,255,255,0.08)",
-                borderRadius: 8,
-                padding: "8px 16px",
-                marginRight: 12,
-              }}
-            >
-              {typeLabel[job.employmentType] ?? job.employmentType}
-            </div>
-          )}
-          {job.location && (
-            <div style={{ fontSize: 18, color: OG_MUTED, marginRight: 12 }}>
-              {job.location}
-            </div>
-          )}
-          {job.remote && (
-            <div
-              style={{
-                fontSize: 16,
-                color: OG_TEXT,
-                background: "rgba(255,255,255,0.08)",
-                borderRadius: 8,
-                padding: "8px 16px",
-                marginRight: 12,
-              }}
-            >
-              Remote
-            </div>
-          )}
-          {job.salaryRange && (
-            <div style={{ fontSize: 18, color: OG_MUTED }}>
-              {job.salaryRange}
+        {/* Middle: title */}
+        <div style={{ display: "flex", flexDirection: "column", marginTop: 32, flex: 1 }}>
+          <div style={{ display: "flex", fontSize: 52, fontWeight: 700, color: OG_TEXT, lineHeight: 1.15 }}>
+            {job.title.length > 50 ? job.title.slice(0, 50) + "..." : job.title}
+          </div>
+          {details && (
+            <div style={{ display: "flex", fontSize: 22, color: OG_MUTED, marginTop: 20 }}>
+              {details}
             </div>
           )}
         </div>
+
+        {/* Bottom: salary */}
+        {job.salaryRange && (
+          <div style={{ display: "flex", fontSize: 22, color: OG_TEXT, opacity: 0.9 }}>
+            {job.salaryRange}
+          </div>
+        )}
       </OgCard>
     ),
     { ...size, fonts },

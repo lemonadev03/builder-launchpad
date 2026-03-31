@@ -55,79 +55,75 @@ export default async function Image({
 
   return new ImageResponse(
     (
-      <OgCard accentColor={OG_PRIMARY}>
-        <div style={{ display: "flex", flex: 1 }}>
-          {/* Logo */}
-          <div style={{ display: "flex", flexShrink: 0, marginRight: 36 }}>
+      <OgCard>
+        {/* Center content vertically */}
+        <div style={{ display: "flex", flex: 1, alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+            {/* Logo */}
             {logoSrc ? (
               <img
                 src={logoSrc}
-                width={110}
-                height={110}
-                style={{ borderRadius: 16, objectFit: "cover" }}
+                width={130}
+                height={130}
+                style={{ borderRadius: 20, objectFit: "cover", flexShrink: 0 }}
               />
             ) : (
               <div
                 style={{
-                  width: 110,
-                  height: 110,
-                  borderRadius: 16,
+                  width: 130,
+                  height: 130,
+                  borderRadius: 20,
                   background: OG_PRIMARY,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 40,
+                  fontSize: 48,
                   fontWeight: 700,
                   color: OG_TEXT,
+                  flexShrink: 0,
                 }}
               >
                 {getInitials(c.name)}
               </div>
             )}
-          </div>
 
-          {/* Info */}
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
-            <div style={{ fontSize: 44, fontWeight: 700, color: OG_TEXT, lineHeight: 1.1 }}>
-              {c.name.length > 40 ? c.name.slice(0, 40) + "..." : c.name}
-            </div>
-            {c.tagline && (
-              <div style={{ fontSize: 22, color: OG_TEXT, marginTop: 12, lineHeight: 1.4, opacity: 0.85 }}>
-                {c.tagline.length > 100 ? c.tagline.slice(0, 100) + "..." : c.tagline}
+            {/* Info */}
+            <div style={{ display: "flex", flexDirection: "column", marginLeft: 40, flex: 1 }}>
+              {breadcrumb && (
+                <div style={{ display: "flex", fontSize: 16, color: OG_MUTED, marginBottom: 8 }}>
+                  {breadcrumb}
+                </div>
+              )}
+              <div style={{ display: "flex", fontSize: 48, fontWeight: 700, color: OG_TEXT, lineHeight: 1.1 }}>
+                {c.name.length > 30 ? c.name.slice(0, 30) + "..." : c.name}
               </div>
-            )}
-            {breadcrumb && (
-              <div style={{ fontSize: 16, color: OG_MUTED, marginTop: 12 }}>
-                {breadcrumb}
+              {c.tagline && (
+                <div style={{ display: "flex", fontSize: 22, color: OG_TEXT, marginTop: 14, lineHeight: 1.35, opacity: 0.8 }}>
+                  {c.tagline.length > 90 ? c.tagline.slice(0, 90) + "..." : c.tagline}
+                </div>
+              )}
+              <div style={{ display: "flex", alignItems: "center", marginTop: 20 }}>
+                <div style={{ display: "flex", fontSize: 18, color: OG_MUTED }}>
+                  {`${c.memberCount} ${c.memberCount === 1 ? "member" : "members"}`}
+                </div>
+                {c.joinPolicy && (
+                  <div
+                    style={{
+                      display: "flex",
+                      fontSize: 15,
+                      color: OG_PRIMARY,
+                      background: "rgba(77,125,255,0.12)",
+                      borderRadius: 20,
+                      padding: "5px 14px",
+                      marginLeft: 14,
+                    }}
+                  >
+                    {joinPolicyLabel[c.joinPolicy] ?? c.joinPolicy}
+                  </div>
+                )}
               </div>
-            )}
-          </div>
-        </div>
-
-        {/* Bottom stats */}
-        <div style={{ display: "flex", alignItems: "center", marginTop: 20 }}>
-          <div style={{ fontSize: 18, color: OG_MUTED, display: "flex" }}>
-            {`${c.memberCount} ${c.memberCount === 1 ? "member" : "members"}`}
-          </div>
-          {c.joinPolicy && (
-            <div
-              style={{
-                fontSize: 15,
-                color: OG_TEXT,
-                background: "rgba(255,255,255,0.08)",
-                borderRadius: 8,
-                padding: "6px 14px",
-                marginLeft: 16,
-              }}
-            >
-              {joinPolicyLabel[c.joinPolicy] ?? c.joinPolicy}
             </div>
-          )}
-          {c.location && (
-            <div style={{ fontSize: 18, color: OG_MUTED, marginLeft: 16 }}>
-              {c.location}
-            </div>
-          )}
+          </div>
         </div>
       </OgCard>
     ),

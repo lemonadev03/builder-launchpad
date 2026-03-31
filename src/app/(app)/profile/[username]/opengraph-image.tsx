@@ -39,83 +39,78 @@ export default async function Image({
   }
 
   const avatarSrc = await resolveImageSrc(p.avatarUrl);
-  const tags = p.tags.slice(0, 5);
+  const tags = p.tags.slice(0, 4);
 
   return new ImageResponse(
     (
       <OgCard>
-        <div style={{ display: "flex", flex: 1 }}>
-          {/* Avatar */}
-          <div style={{ display: "flex", flexShrink: 0, marginRight: 36 }}>
+        {/* Center content vertically */}
+        <div style={{ display: "flex", flex: 1, alignItems: "center" }}>
+          <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
+            {/* Avatar */}
             {avatarSrc ? (
               <img
                 src={avatarSrc}
-                width={120}
-                height={120}
-                style={{ borderRadius: "50%", objectFit: "cover" }}
+                width={148}
+                height={148}
+                style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
               />
             ) : (
               <div
                 style={{
-                  width: 120,
-                  height: 120,
+                  width: 148,
+                  height: 148,
                   borderRadius: "50%",
                   background: OG_PRIMARY,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 44,
+                  fontSize: 52,
                   fontWeight: 700,
                   color: OG_TEXT,
+                  flexShrink: 0,
                 }}
               >
                 {getInitials(p.displayName)}
               </div>
             )}
-          </div>
 
-          {/* Info */}
-          <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
-            <div style={{ fontSize: 44, fontWeight: 700, color: OG_TEXT, lineHeight: 1.1 }}>
-              {p.displayName}
-            </div>
-            <div style={{ fontSize: 22, color: OG_MUTED, marginTop: 6, display: "flex" }}>
-              {`@${p.username}`}
-            </div>
-            {p.tagline && (
-              <div style={{ fontSize: 22, color: OG_TEXT, marginTop: 16, lineHeight: 1.4, opacity: 0.85 }}>
-                {p.tagline.length > 100 ? p.tagline.slice(0, 100) + "..." : p.tagline}
+            {/* Info */}
+            <div style={{ display: "flex", flexDirection: "column", marginLeft: 40, flex: 1 }}>
+              <div style={{ display: "flex", fontSize: 52, fontWeight: 700, color: OG_TEXT, lineHeight: 1.1 }}>
+                {p.displayName}
               </div>
-            )}
-            {p.location && (
-              <div style={{ display: "flex", alignItems: "center", fontSize: 18, color: OG_MUTED, marginTop: 12 }}>
-                {p.location}
+              <div style={{ display: "flex", fontSize: 24, color: OG_MUTED, marginTop: 8 }}>
+                {`@${p.username}`}
               </div>
-            )}
+              {p.tagline && (
+                <div style={{ display: "flex", fontSize: 24, color: OG_TEXT, marginTop: 20, lineHeight: 1.35, opacity: 0.8 }}>
+                  {p.tagline.length > 80 ? p.tagline.slice(0, 80) + "..." : p.tagline}
+                </div>
+              )}
+              {tags.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", marginTop: 20 }}>
+                  {tags.map((t) => (
+                    <div
+                      key={t.id}
+                      style={{
+                        display: "flex",
+                        fontSize: 16,
+                        color: OG_PRIMARY,
+                        background: "rgba(77,125,255,0.12)",
+                        borderRadius: 20,
+                        padding: "6px 16px",
+                        marginRight: 8,
+                      }}
+                    >
+                      {t.label}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </div>
-
-        {/* Tags */}
-        {tags.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap", marginTop: 20 }}>
-            {tags.map((t) => (
-              <div
-                key={t.id}
-                style={{
-                  fontSize: 15,
-                  color: OG_TEXT,
-                  background: "rgba(255,255,255,0.08)",
-                  borderRadius: 8,
-                  padding: "6px 14px",
-                  marginRight: 8,
-                  marginBottom: 8,
-                }}
-              >
-                {t.label}
-              </div>
-            ))}
-          </div>
-        )}
       </OgCard>
     ),
     { ...size, fonts },
