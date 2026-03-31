@@ -2,11 +2,11 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Loader2, RefreshCcw, Sparkles, StarOff, Archive } from "lucide-react";
+import { Loader2, RefreshCcw, Sparkles, StarOff, Archive, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 
-type PlatformCommunityAction = "archive" | "restore" | "feature" | "unfeature";
+type PlatformCommunityAction = "archive" | "restore" | "feature" | "unfeature" | "delete";
 
 interface PlatformCommunityActionsProps {
   communityId: string;
@@ -21,6 +21,7 @@ const LABELS: Record<PlatformCommunityAction, string> = {
   restore: "Restore",
   feature: "Feature",
   unfeature: "Unfeature",
+  delete: "Delete",
 };
 
 const CONFIRMATIONS: Record<PlatformCommunityAction, string> = {
@@ -28,6 +29,7 @@ const CONFIRMATIONS: Record<PlatformCommunityAction, string> = {
   restore: "Restore this archived community?",
   feature: "Feature this community for platform discovery?",
   unfeature: "Remove this community from featured placement?",
+  delete: "PERMANENTLY DELETE this community and all its sub-communities, posts, members, and data? This cannot be undone.",
 };
 
 export function PlatformCommunityActions({
@@ -62,6 +64,10 @@ export function PlatformCommunityActions({
       }
 
       toast.success(`${LABELS[action]}d ${communityName}`);
+      if (action === "delete") {
+        router.push("/platform/communities");
+        return;
+      }
       router.refresh();
     } catch {
       toast.error("Action failed");
@@ -74,7 +80,7 @@ export function PlatformCommunityActions({
     action: PlatformCommunityAction;
     label: string;
     icon: typeof Archive;
-    variant: "outline" | "ghost";
+    variant: "outline" | "ghost" | "destructive";
   }> = [];
 
   if (isArchived) {
@@ -98,6 +104,13 @@ export function PlatformCommunityActions({
       variant: "ghost",
     });
   }
+
+  actionButtons.push({
+    action: "delete",
+    label: "Delete",
+    icon: Trash2,
+    variant: "destructive",
+  });
 
   return (
     <div className="flex flex-wrap items-center gap-2">

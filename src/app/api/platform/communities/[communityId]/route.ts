@@ -3,6 +3,7 @@ import { requireApiAuth } from "@/lib/api-auth";
 import { isPlatformAdminUser } from "@/lib/platform-admin";
 import {
   archiveCommunity,
+  deleteCommunity,
   getCommunityById,
   restoreCommunity,
   setCommunityFeatured,
@@ -45,6 +46,18 @@ export async function PATCH(request: Request, { params }: Props) {
       { error: "Community not found" },
       { status: 404 },
     );
+  }
+
+  // Hard delete — no audit log since the community is gone
+  if (parsed.data.action === "delete") {
+    const result = await deleteCommunity(existing.id);
+    if (!result) {
+      return NextResponse.json(
+        { error: "Delete failed" },
+        { status: 500 },
+      );
+    }
+    return NextResponse.json({ deleted: true, count: result.deleted });
   }
 
   let updated = existing;

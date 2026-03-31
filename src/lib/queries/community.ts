@@ -199,6 +199,51 @@ export async function restoreCommunity(communityId: string) {
   return rows[0] ?? null;
 }
 
+export async function deleteCommunity(communityId: string) {
+  // Collect this community + all descendants (including archived) bottom-up
+  const rows: { id: string; depth: number }[] = await db.execute(sql`
+    WITH RECURSIVE descendants AS (
+      SELECT id, depth FROM community WHERE id = ${communityId}
+      UNION ALL
+      SELECT c.id, c.depth
+      FROM community c
+      JOIN descendants d ON c.parent_id = d.id
+    )
+    SELECT id, depth FROM descendants ORDER BY depth DESC
+  `);
+
+  const allIds = rows.map((r) => r.id);
+  if (allIds.length === 0) return null;
+
+  // Clean up reactions & bookmarks for posts in these communities (no FK cascade)
+  await db.execute(sql`
+    DELETE FROM reaction
+    WHERE target_id IN (
+      SELECT id FROM post WHERE community_id IN ${sql`(${sql.join(allIds.map((id) => sql`${id}`), sql`, `)})`}
+    )
+    OR target_id IN (
+      SELECT c.id FROM comment c
+      JOIN post p ON c.post_id = p.id
+      WHERE p.community_id IN ${sql`(${sql.join(allIds.map((id) => sql`${id}`), sql`, `)})`}
+    )
+  `);
+
+  await db.execute(sql`
+    DELETE FROM bookmark
+    WHERE target_id IN (
+      SELECT id FROM post WHERE community_id IN ${sql`(${sql.join(allIds.map((id) => sql`${id}`), sql`, `)})`}
+    )
+  `);
+
+  // Delete communities bottom-up (deepest children first)
+  // ON DELETE CASCADE handles memberships, posts, comments, flags, invites, etc.
+  for (const row of rows) {
+    await db.delete(community).where(eq(community.id, row.id));
+  }
+
+  return { deleted: allIds.length };
+}
+
 export async function setCommunityFeatured(
   communityId: string,
   isFeatured: boolean,
