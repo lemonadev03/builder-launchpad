@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Pencil } from "lucide-react";
 import { getCommunityBySlug } from "@/lib/queries/community";
 import { getAncestorChain } from "@/lib/queries/community-tree";
 import { getPostBySlug } from "@/lib/queries/post";
@@ -23,13 +23,15 @@ import {
 import { hasPermission } from "@/lib/permissions";
 import { getSession } from "@/lib/session";
 import { PostAuthorCard } from "@/components/post-author-card";
-import { ShareUrl } from "@/components/share-url";
+import { CopyLinkButton } from "@/components/copy-link-button";
 import { ReactionBar } from "@/components/reaction-bar";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { FlagButton } from "@/components/flag-button";
 import { CommentSection } from "@/components/comment-section";
 import { RichTextRenderer } from "@/components/editor/rich-text-renderer";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
 import type { TiptapContent } from "@/lib/tiptap";
 
 interface Props {
@@ -197,9 +199,9 @@ export default async function PostPage({ params }: Props) {
       : `${process.env.NEXT_PUBLIC_APP_URL || ""}/communities/${slug}/posts/${postSlug}`;
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
+    <div className="mx-auto max-w-[680px] px-4 py-8">
       {/* Breadcrumb */}
-      <nav className="mb-4 flex items-center gap-1 text-sm text-muted-foreground">
+      <nav className="mb-6 flex items-center gap-1 text-sm text-muted-foreground">
         {ancestors.map((a, i) => (
           <span key={a.id} className="flex items-center gap-1">
             {i > 0 && <ChevronRight className="h-3.5 w-3.5" />}
@@ -241,34 +243,10 @@ export default async function PostPage({ params }: Props) {
         </Badge>
       )}
 
-      {/* Title */}
-      <h1 className="mb-4 text-2xl font-bold leading-tight">{p.title}</h1>
-
-      {/* Author + date */}
-      <div className="mb-4 flex items-center justify-between">
-        <PostAuthorCard
-          displayName={p.authorDisplayName}
-          username={p.authorUsername}
-          avatarUrl={p.authorAvatarUrl}
-          role={p.authorRole}
-        />
-        {p.publishedAt && (
-          <time
-            dateTime={p.publishedAt.toISOString()}
-            className="text-xs text-muted-foreground"
-          >
-            {p.publishedAt.toLocaleDateString("en-US", {
-              month: "short",
-              day: "numeric",
-              year: "numeric",
-            })}
-          </time>
-        )}
-      </div>
-
-      {/* Tags */}
+      {/* Title + tags inline */}
+      <h1 className="text-2xl font-bold leading-tight">{p.title}</h1>
       {tags.length > 0 && (
-        <div className="mb-6 flex flex-wrap gap-1.5">
+        <div className="mt-3 flex flex-wrap gap-1.5">
           {tags.map((tag) => (
             <Link
               key={tag}
@@ -280,32 +258,48 @@ export default async function PostPage({ params }: Props) {
         </div>
       )}
 
+      {/* Author + date + edit */}
+      <div className="mt-5 mb-8 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <PostAuthorCard
+            displayName={p.authorDisplayName}
+            username={p.authorUsername}
+            avatarUrl={p.authorAvatarUrl}
+            role={p.authorRole}
+          />
+          {p.publishedAt && (
+            <>
+              <span className="text-muted-foreground">·</span>
+              <time
+                dateTime={p.publishedAt.toISOString()}
+                className="text-xs text-muted-foreground"
+              >
+                {p.publishedAt.toLocaleDateString("en-US", {
+                  month: "short",
+                  day: "numeric",
+                  year: "numeric",
+                })}
+              </time>
+            </>
+          )}
+        </div>
+        {session?.user.id === p.authorId && (
+          <Link href={`/posts/edit/${p.id}`}>
+            <Button variant="ghost" size="sm" className="gap-1.5 text-muted-foreground">
+              <Pencil className="h-3.5 w-3.5" />
+              Edit
+            </Button>
+          </Link>
+        )}
+      </div>
+
       {/* Content */}
-      <article className="mb-8">
+      <article>
         <RichTextRenderer content={p.content as TiptapContent} />
       </article>
 
-      {/* Edit link for author */}
-      {session?.user.id === p.authorId && (
-        <div className="mb-6">
-          <Link
-            href={`/posts/edit/${p.id}`}
-            className="text-sm text-primary hover:underline"
-          >
-            Edit this post
-          </Link>
-        </div>
-      )}
-
-      {/* Share URL */}
-      <section className="mb-8">
-        <h2 className="mb-2 text-xs font-medium uppercase tracking-wider text-muted-foreground">
-          Share
-        </h2>
-        <ShareUrl url={postUrl} />
-      </section>
-
-      {/* Reactions + bookmark + flag */}
+      {/* Action bar */}
+      <Separator className="my-6" />
       <section className="mb-8 flex items-center justify-between">
         <ReactionBar
           targetType="post"
@@ -314,6 +308,7 @@ export default async function PostPage({ params }: Props) {
           userReactions={userReactions}
         />
         <div className="flex items-center gap-1">
+          <CopyLinkButton url={postUrl} />
           <BookmarkButton
             targetType="post"
             targetId={p.id}
