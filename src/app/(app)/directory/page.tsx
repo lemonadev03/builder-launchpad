@@ -6,7 +6,7 @@ import { getDirectoryProfiles } from "@/lib/queries/directory";
 import { getAllTags } from "@/lib/queries/profile";
 import { getListedCommunities } from "@/lib/queries/community";
 import { getAllSisterLinks } from "@/lib/queries/sister";
-import { ProfileCard, ProfileCardSkeleton } from "@/components/profile-card";
+import { ProfileCard } from "@/components/profile-card";
 import { DirectoryFilters } from "@/components/directory-filters";
 
 export const metadata: Metadata = {

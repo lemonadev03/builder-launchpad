@@ -100,7 +100,6 @@ export default async function FeedPage({ searchParams }: Props) {
                 communitySlug={p.communitySlug}
                 communityName={selectedCommunityId ? undefined : p.communityName}
                 authorName={p.authorDisplayName}
-                authorUsername={p.authorUsername}
                 authorAvatarUrl={p.authorAvatarUrl}
                 publishedAt={p.publishedAt}
                 tags={(p.tags as string[]) ?? []}

@@ -80,7 +80,6 @@ export default async function BookmarksPage({ searchParams }: Props) {
                   slug={b.postSlug}
                   communitySlug={b.communitySlug}
                   authorName={b.authorDisplayName}
-                  authorUsername={b.authorUsername}
                   authorAvatarUrl={b.authorAvatarUrl}
                   publishedAt={b.postPublishedAt}
                   tags={(b.postTags as string[]) ?? []}

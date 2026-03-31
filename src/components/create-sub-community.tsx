@@ -11,13 +11,11 @@ import { Textarea } from "@/components/ui/textarea";
 
 interface CreateSubCommunityProps {
   parentId: string;
-  parentSlug: string;
   tierLabel: string;
 }
 
 export function CreateSubCommunity({
   parentId,
-  parentSlug,
   tierLabel,
 }: CreateSubCommunityProps) {
   const router = useRouter();

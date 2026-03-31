@@ -192,7 +192,6 @@ export default async function CommunityPage({ params }: Props) {
             {canCreateSub && !maxDepthReached && (
               <CreateSubCommunity
                 parentId={c.id}
-                parentSlug={slug}
                 tierLabel={tierLabel.replace(/s$/, "")}
               />
             )}
@@ -309,7 +308,6 @@ export default async function CommunityPage({ params }: Props) {
                   slug={p.slug}
                   communitySlug={slug}
                   authorName={p.authorDisplayName}
-                  authorUsername={p.authorUsername}
                   authorAvatarUrl={p.authorAvatarUrl}
                   publishedAt={p.publishedAt}
                   tags={(p.tags as string[]) ?? []}

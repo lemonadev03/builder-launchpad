@@ -15,7 +15,6 @@ import {
 import { getJobById } from "@/lib/queries/job";
 import { isBookmarked } from "@/lib/queries/bookmark";
 import { getSession } from "@/lib/session";
-import { buttonVariants } from "@/components/ui/button-variants";
 import { Badge } from "@/components/ui/badge";
 import { BookmarkButton } from "@/components/bookmark-button";
 import { ApplyButton } from "@/components/apply-button";

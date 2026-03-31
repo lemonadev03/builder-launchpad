@@ -10,7 +10,6 @@ interface PostCardProps {
   communitySlug: string;
   communityName?: string;
   authorName: string;
-  authorUsername: string;
   authorAvatarUrl: string | null;
   publishedAt: Date | null;
   tags: string[];
@@ -25,7 +24,6 @@ export function PostCard({
   communitySlug,
   communityName,
   authorName,
-  authorUsername,
   authorAvatarUrl,
   publishedAt,
   tags,

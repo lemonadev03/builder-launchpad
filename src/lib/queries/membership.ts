@@ -3,8 +3,6 @@ import { db } from "@/db";
 import { membership, profile, community } from "@/db/schema";
 import { cascadeLeaveDescendants } from "@/lib/queries/membership-inheritance";
 
-const REJOIN_COOLDOWN_MS = 24 * 60 * 60 * 1000; // 24 hours
-
 export async function getMembership(userId: string, communityId: string) {
   const rows = await db
     .select()
@@ -176,12 +174,8 @@ export async function leaveCommunity(userId: string, communityId: string) {
   return { error: null };
 }
 
-export async function canRejoin(userId: string, communityId: string) {
-  // Check if there's a recently deleted membership (leftAt within 24h)
-  // Since we hard-delete, we'd need a leftAt timestamp. For simplicity,
-  // check if there's any membership row with leftAt set.
-  // Since we delete, we'll track via a different approach: store leftAt before deletion.
-  // For now, always allow — the 24h cooldown requires persisting leftAt which adds complexity.
+export async function canRejoin() {
+  // Hard-deletes mean no leftAt to check — always allow.
   // The unique constraint prevents duplicate active memberships.
   return true;
 }

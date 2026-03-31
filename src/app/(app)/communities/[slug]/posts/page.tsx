@@ -112,7 +112,6 @@ export default async function CommunityPostsPage({
               slug={p.slug}
               communitySlug={slug}
               authorName={p.authorDisplayName}
-              authorUsername={p.authorUsername}
               authorAvatarUrl={p.authorAvatarUrl}
               publishedAt={p.publishedAt}
               tags={(p.tags as string[]) ?? []}

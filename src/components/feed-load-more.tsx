@@ -16,7 +16,6 @@ interface FeedPost {
   communityName: string;
   communitySlug: string;
   authorDisplayName: string;
-  authorUsername: string;
   authorAvatarUrl: string | null;
   reactionCounts: Record<string, number>;
   commentCount: number;
@@ -58,7 +57,6 @@ export function FeedLoadMore({ initialCursor, communityId }: FeedLoadMoreProps) 
               communitySlug={p.communitySlug}
               communityName={communityId ? undefined : p.communityName}
               authorName={p.authorDisplayName}
-              authorUsername={p.authorUsername}
               authorAvatarUrl={p.authorAvatarUrl}
               publishedAt={p.publishedAt ? new Date(p.publishedAt) : null}
               tags={(p.tags as string[]) ?? []}
