@@ -202,7 +202,7 @@ export async function getCommentCountTodayByUser(
       and(
         eq(comment.authorId, userId),
         isNull(comment.deletedAt),
-        sql`${comment.createdAt} >= ${startOfDay}`,
+        sql`${comment.createdAt} >= ${startOfDay.toISOString()}`,
       ),
     );
 
