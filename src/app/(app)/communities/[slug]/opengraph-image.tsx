@@ -1,6 +1,5 @@
 import { ImageResponse } from "next/og";
 import { getCommunityBySlug } from "@/lib/queries/community";
-import { getAncestorChain } from "@/lib/queries/community-tree";
 import { OgCard } from "@/lib/og/og-card";
 import {
   OG_SIZE,
@@ -36,7 +35,7 @@ export default async function Image({
     return new ImageResponse(
       (
         <OgCard>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1, color: OG_MUTED, fontSize: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1, color: OG_MUTED, fontSize: 28 }}>
             Community not found
           </div>
         </OgCard>
@@ -45,39 +44,32 @@ export default async function Image({
     );
   }
 
-  const ancestors = c.parentId ? await getAncestorChain(c.id) : [];
-  const breadcrumb =
-    ancestors.length > 1
-      ? ancestors.map((a) => a.name).join("  >  ")
-      : null;
-
   const logoSrc = await resolveImageSrc(c.logoUrl);
 
   return new ImageResponse(
     (
       <OgCard>
-        {/* Center content vertically */}
         <div style={{ display: "flex", flex: 1, alignItems: "center" }}>
           <div style={{ display: "flex", alignItems: "center", width: "100%" }}>
             {/* Logo */}
             {logoSrc ? (
               <img
                 src={logoSrc}
-                width={130}
-                height={130}
-                style={{ borderRadius: 20, objectFit: "cover", flexShrink: 0 }}
+                width={180}
+                height={180}
+                style={{ borderRadius: 24, objectFit: "cover", flexShrink: 0 }}
               />
             ) : (
               <div
                 style={{
-                  width: 130,
-                  height: 130,
-                  borderRadius: 20,
-                  background: OG_PRIMARY,
+                  width: 180,
+                  height: 180,
+                  borderRadius: 24,
+                  background: `linear-gradient(135deg, ${OG_PRIMARY}, #7b5cff)`,
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 48,
+                  fontSize: 64,
                   fontWeight: 700,
                   color: OG_TEXT,
                   flexShrink: 0,
@@ -88,34 +80,29 @@ export default async function Image({
             )}
 
             {/* Info */}
-            <div style={{ display: "flex", flexDirection: "column", marginLeft: 40, flex: 1 }}>
-              {breadcrumb && (
-                <div style={{ display: "flex", fontSize: 16, color: OG_MUTED, marginBottom: 8 }}>
-                  {breadcrumb}
-                </div>
-              )}
-              <div style={{ display: "flex", fontSize: 48, fontWeight: 700, color: OG_TEXT, lineHeight: 1.1 }}>
-                {c.name.length > 30 ? c.name.slice(0, 30) + "..." : c.name}
+            <div style={{ display: "flex", flexDirection: "column", marginLeft: 48, flex: 1 }}>
+              <div style={{ display: "flex", fontSize: 60, fontWeight: 700, color: OG_TEXT, lineHeight: 1.1 }}>
+                {c.name.length > 24 ? c.name.slice(0, 24) + "..." : c.name}
               </div>
               {c.tagline && (
-                <div style={{ display: "flex", fontSize: 22, color: OG_TEXT, marginTop: 14, lineHeight: 1.35, opacity: 0.8 }}>
-                  {c.tagline.length > 90 ? c.tagline.slice(0, 90) + "..." : c.tagline}
+                <div style={{ display: "flex", fontSize: 26, color: OG_TEXT, marginTop: 16, lineHeight: 1.35, opacity: 0.75 }}>
+                  {c.tagline.length > 70 ? c.tagline.slice(0, 70) + "..." : c.tagline}
                 </div>
               )}
-              <div style={{ display: "flex", alignItems: "center", marginTop: 20 }}>
-                <div style={{ display: "flex", fontSize: 18, color: OG_MUTED }}>
+              <div style={{ display: "flex", alignItems: "center", marginTop: 24 }}>
+                <div style={{ display: "flex", fontSize: 22, color: OG_MUTED }}>
                   {`${c.memberCount} ${c.memberCount === 1 ? "member" : "members"}`}
                 </div>
                 {c.joinPolicy && (
                   <div
                     style={{
                       display: "flex",
-                      fontSize: 15,
+                      fontSize: 18,
                       color: OG_PRIMARY,
                       background: "rgba(77,125,255,0.12)",
                       borderRadius: 20,
-                      padding: "5px 14px",
-                      marginLeft: 14,
+                      padding: "6px 16px",
+                      marginLeft: 16,
                     }}
                   >
                     {joinPolicyLabel[c.joinPolicy] ?? c.joinPolicy}

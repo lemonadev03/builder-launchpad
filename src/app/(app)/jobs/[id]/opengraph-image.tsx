@@ -36,7 +36,7 @@ export default async function Image({
     return new ImageResponse(
       (
         <OgCard>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1, color: OG_MUTED, fontSize: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1, color: OG_MUTED, fontSize: 28 }}>
             Job not found
           </div>
         </OgCard>
@@ -55,26 +55,26 @@ export default async function Image({
   return new ImageResponse(
     (
       <OgCard>
-        {/* Top: company */}
+        {/* Company row */}
         <div style={{ display: "flex", alignItems: "center" }}>
           {logoSrc ? (
             <img
               src={logoSrc}
-              width={48}
-              height={48}
-              style={{ borderRadius: 12, objectFit: "cover", flexShrink: 0 }}
+              width={80}
+              height={80}
+              style={{ borderRadius: 16, objectFit: "cover", flexShrink: 0 }}
             />
           ) : (
             <div
               style={{
-                width: 48,
-                height: 48,
-                borderRadius: 12,
-                background: OG_PRIMARY,
+                width: 80,
+                height: 80,
+                borderRadius: 16,
+                background: `linear-gradient(135deg, ${OG_PRIMARY}, #7b5cff)`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 18,
+                fontSize: 28,
                 fontWeight: 700,
                 color: OG_TEXT,
                 flexShrink: 0,
@@ -83,26 +83,26 @@ export default async function Image({
               {getInitials(job.companyName)}
             </div>
           )}
-          <div style={{ display: "flex", fontSize: 22, color: OG_MUTED, marginLeft: 16 }}>
+          <div style={{ display: "flex", fontSize: 28, color: OG_MUTED, marginLeft: 20 }}>
             {job.companyName}
           </div>
         </div>
 
-        {/* Middle: title */}
-        <div style={{ display: "flex", flexDirection: "column", marginTop: 32, flex: 1 }}>
-          <div style={{ display: "flex", fontSize: 52, fontWeight: 700, color: OG_TEXT, lineHeight: 1.15 }}>
-            {job.title.length > 50 ? job.title.slice(0, 50) + "..." : job.title}
+        {/* Title + details */}
+        <div style={{ display: "flex", flexDirection: "column", marginTop: 40, flex: 1 }}>
+          <div style={{ display: "flex", fontSize: 60, fontWeight: 700, color: OG_TEXT, lineHeight: 1.15 }}>
+            {job.title.length > 40 ? job.title.slice(0, 40) + "..." : job.title}
           </div>
           {details && (
-            <div style={{ display: "flex", fontSize: 22, color: OG_MUTED, marginTop: 20 }}>
+            <div style={{ display: "flex", fontSize: 26, color: OG_MUTED, marginTop: 24 }}>
               {details}
             </div>
           )}
         </div>
 
-        {/* Bottom: salary */}
+        {/* Salary */}
         {job.salaryRange && (
-          <div style={{ display: "flex", fontSize: 22, color: OG_TEXT, opacity: 0.9 }}>
+          <div style={{ display: "flex", fontSize: 26, color: OG_TEXT, opacity: 0.85 }}>
             {job.salaryRange}
           </div>
         )}

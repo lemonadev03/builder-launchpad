@@ -29,7 +29,7 @@ export default async function Image({
     return new ImageResponse(
       (
         <OgCard>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1, color: OG_MUTED, fontSize: 24 }}>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "center", flex: 1, color: OG_MUTED, fontSize: 28 }}>
             Post not found
           </div>
         </OgCard>
@@ -39,35 +39,38 @@ export default async function Image({
   }
 
   const authorAvatar = await resolveImageSrc(p.authorAvatarUrl);
-  const publishedDate = p.publishedAt
-    ? p.publishedAt.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" })
-    : null;
-  const tags = (p.tags as string[] | null)?.slice(0, 3) ?? [];
-  const meta = [p.communityName, publishedDate].filter(Boolean).join("  ·  ");
+  const firstName = p.authorDisplayName.split(/\s+/)[0];
 
   return new ImageResponse(
     (
       <OgCard>
-        {/* Top: author row */}
+        {/* Title — hero */}
+        <div style={{ display: "flex", flexDirection: "column", flex: 1, justifyContent: "center" }}>
+          <div style={{ display: "flex", fontSize: 56, fontWeight: 700, color: OG_TEXT, lineHeight: 1.2 }}>
+            {p.title.length > 60 ? p.title.slice(0, 60) + "..." : p.title}
+          </div>
+        </div>
+
+        {/* Author row */}
         <div style={{ display: "flex", alignItems: "center" }}>
           {authorAvatar ? (
             <img
               src={authorAvatar}
-              width={40}
-              height={40}
+              width={56}
+              height={56}
               style={{ borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
             />
           ) : (
             <div
               style={{
-                width: 40,
-                height: 40,
+                width: 56,
+                height: 56,
                 borderRadius: "50%",
-                background: "rgba(255,255,255,0.1)",
+                background: `linear-gradient(135deg, ${OG_PRIMARY}, #7b5cff)`,
                 display: "flex",
                 alignItems: "center",
                 justifyContent: "center",
-                fontSize: 16,
+                fontSize: 22,
                 fontWeight: 700,
                 color: OG_TEXT,
                 flexShrink: 0,
@@ -76,49 +79,16 @@ export default async function Image({
               {getInitials(p.authorDisplayName)}
             </div>
           )}
-          <div style={{ display: "flex", flexDirection: "column", marginLeft: 14 }}>
-            <div style={{ display: "flex", fontSize: 18, color: OG_TEXT }}>
-              {p.authorDisplayName}
-            </div>
-            <div style={{ display: "flex", fontSize: 15, color: OG_MUTED }}>
-              {meta}
-            </div>
+          <div style={{ display: "flex", fontSize: 26, color: OG_MUTED, marginLeft: 18 }}>
+            {firstName}
+          </div>
+          <div style={{ display: "flex", fontSize: 26, color: OG_MUTED, marginLeft: 8, opacity: 0.5 }}>
+            from
+          </div>
+          <div style={{ display: "flex", fontSize: 26, color: OG_TEXT, marginLeft: 8, opacity: 0.85 }}>
+            {p.communityName}
           </div>
         </div>
-
-        {/* Middle: title + excerpt */}
-        <div style={{ display: "flex", flexDirection: "column", marginTop: 32, flex: 1 }}>
-          <div style={{ display: "flex", fontSize: 48, fontWeight: 700, color: OG_TEXT, lineHeight: 1.2 }}>
-            {p.title.length > 70 ? p.title.slice(0, 70) + "..." : p.title}
-          </div>
-          {p.excerpt && (
-            <div style={{ display: "flex", fontSize: 22, color: OG_MUTED, marginTop: 18, lineHeight: 1.4 }}>
-              {p.excerpt.length > 120 ? p.excerpt.slice(0, 120) + "..." : p.excerpt}
-            </div>
-          )}
-        </div>
-
-        {/* Bottom: tags */}
-        {tags.length > 0 && (
-          <div style={{ display: "flex", flexWrap: "wrap" }}>
-            {tags.map((t) => (
-              <div
-                key={t}
-                style={{
-                  display: "flex",
-                  fontSize: 15,
-                  color: OG_PRIMARY,
-                  background: "rgba(77,125,255,0.12)",
-                  borderRadius: 20,
-                  padding: "6px 16px",
-                  marginRight: 8,
-                }}
-              >
-                {t}
-              </div>
-            ))}
-          </div>
-        )}
       </OgCard>
     ),
     { ...size, fonts },

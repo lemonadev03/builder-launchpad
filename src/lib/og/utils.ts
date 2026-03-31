@@ -3,12 +3,14 @@ import { join } from "node:path";
 import { getFromS3 } from "@/lib/s3";
 
 // Theme colors — oklch converted to hex for Satori compatibility
-export const OG_BG = "#0f1219";
-export const OG_CARD_BG = "#171c2a";
+export const OG_BG = "#0c0f17";
+export const OG_CARD_BG = "#151a28";
+export const OG_CARD_BG_END = "#181e33";
 export const OG_PRIMARY = "#4d7dff";
+export const OG_ACCENT_END = "#7b5cff";
 export const OG_TEXT = "#f3f4f6";
 export const OG_MUTED = "#8b92a5";
-export const OG_BORDER = "rgba(255,255,255,0.08)";
+export const OG_BORDER = "rgba(255,255,255,0.06)";
 
 export const OG_SIZE = { width: 1200, height: 630 };
 export const OG_CONTENT_TYPE = "image/png";

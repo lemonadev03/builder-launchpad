@@ -1,5 +1,13 @@
 import type { ReactNode } from "react";
-import { OG_BG, OG_CARD_BG, OG_BORDER, OG_PRIMARY, OG_MUTED } from "./utils";
+import {
+  OG_BG,
+  OG_CARD_BG,
+  OG_CARD_BG_END,
+  OG_BORDER,
+  OG_PRIMARY,
+  OG_ACCENT_END,
+  OG_MUTED,
+} from "./utils";
 
 export function OgCard({
   children,
@@ -28,8 +36,8 @@ export function OgCard({
           flexDirection: "column",
           width: 1120,
           height: 550,
-          background: OG_CARD_BG,
-          borderRadius: 20,
+          background: `linear-gradient(145deg, ${OG_CARD_BG} 0%, ${OG_CARD_BG_END} 100%)`,
+          borderRadius: 24,
           border: `1px solid ${OG_BORDER}`,
           overflow: "hidden",
           position: "relative",
@@ -39,8 +47,8 @@ export function OgCard({
         <div
           style={{
             width: "100%",
-            height: 4,
-            background: `linear-gradient(90deg, ${accent}, ${accent}88)`,
+            height: 5,
+            background: `linear-gradient(90deg, ${accent}, ${OG_ACCENT_END})`,
             flexShrink: 0,
           }}
         />
@@ -51,7 +59,7 @@ export function OgCard({
             display: "flex",
             flexDirection: "column",
             flex: 1,
-            padding: "40px 48px 36px",
+            padding: "48px 56px 44px",
           }}
         >
           {children}
@@ -62,12 +70,13 @@ export function OgCard({
           style={{
             position: "absolute",
             bottom: 24,
-            right: 40,
+            right: 44,
             display: "flex",
             alignItems: "center",
             fontSize: 14,
             color: OG_MUTED,
-            letterSpacing: "0.02em",
+            letterSpacing: "0.04em",
+            opacity: 0.7,
           }}
         >
           Builder Launchpad
