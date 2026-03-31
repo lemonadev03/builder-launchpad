@@ -276,7 +276,8 @@ export default async function PlatformCommunityDetailPage({ params }: Props) {
               tree={tree}
               currentSlug={community.slug}
               isAdmin={false}
-              viewHref={(node) => `/platform/communities/${node.id}`}
+              hrefPrefix="/platform/communities"
+              hrefKey="id"
             />
           ) : (
             <div className="px-4 text-sm text-muted-foreground">

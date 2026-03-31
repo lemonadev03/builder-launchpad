@@ -23,24 +23,24 @@ interface OrgChartProps {
   tree: TreeNode;
   currentSlug: string;
   isAdmin: boolean;
-  viewHref?: (node: TreeNode) => string;
-  manageHref?: (node: TreeNode) => string | null;
+  /** Base path for node links, e.g. "/platform/communities". Defaults to "/communities". */
+  hrefPrefix?: string;
+  /** Which node field to use in the URL. Defaults to "slug". */
+  hrefKey?: "slug" | "id";
 }
 
 export function OrgChart({
   tree,
   currentSlug,
   isAdmin,
-  viewHref,
-  manageHref,
+  hrefPrefix = "/communities",
+  hrefKey = "slug",
 }: OrgChartProps) {
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
-  const getViewHref =
-    viewHref ?? ((node: TreeNode) => `/communities/${node.slug}`);
-  const getManageHref =
-    manageHref ??
-    ((node: TreeNode) =>
-      isAdmin ? `/communities/${node.slug}/manage` : null);
+  const getViewHref = (node: TreeNode) =>
+    `${hrefPrefix}/${hrefKey === "id" ? node.id : node.slug}`;
+  const getManageHref = (node: TreeNode) =>
+    isAdmin ? `${hrefPrefix}/${hrefKey === "id" ? node.id : node.slug}/manage` : null;
 
   return (
     <div className="flex gap-6 px-4 sm:px-6">
