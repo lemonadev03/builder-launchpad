@@ -93,12 +93,7 @@ export default async function PlatformCommunitiesPage({ searchParams }: Props) {
                 run archive or feature actions.
               </CardDescription>
             </div>
-            <div className="flex items-center gap-3">
-              <span className="text-sm text-muted-foreground">
-                {total} communit{total === 1 ? "y" : "ies"}
-              </span>
-              <PlatformCreateCommunity />
-            </div>
+            <PlatformCreateCommunity />
           </div>
         </CardHeader>
         <CardContent>

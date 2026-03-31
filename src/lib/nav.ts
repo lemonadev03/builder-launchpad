@@ -6,7 +6,7 @@ import {
   Bookmark,
   User,
   Building2,
-  LayoutDashboard,
+  UserCog,
   Tag,
   Shield,
   type LucideIcon,
@@ -28,9 +28,9 @@ export const NAV_ITEMS: NavItem[] = [
 ];
 
 export const PLATFORM_NAV: NavItem[] = [
-  { label: "Dashboard", href: "/platform", icon: LayoutDashboard },
   { label: "Communities", href: "/platform/communities", icon: Building2 },
   { label: "Users", href: "/platform/users", icon: Users },
+  { label: "Admins", href: "/platform/admins", icon: UserCog },
   { label: "Tags", href: "/platform/settings", icon: Tag },
   { label: "Moderation", href: "/platform/moderation", icon: Shield },
 ];

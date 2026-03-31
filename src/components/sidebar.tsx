@@ -14,7 +14,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings } from "lucide-react";
+import { ArrowLeft, LogOut, Settings } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 
 const NAV_SETS = {
@@ -25,9 +25,10 @@ const NAV_SETS = {
 interface SidebarProps {
   nav?: keyof typeof NAV_SETS;
   header?: React.ReactNode;
+  backHref?: string;
 }
 
-export function Sidebar({ nav = "default", header }: SidebarProps) {
+export function Sidebar({ nav = "default", header, backHref }: SidebarProps) {
   const items = NAV_SETS[nav];
   const pathname = usePathname();
   const router = useRouter();
@@ -67,10 +68,8 @@ export function Sidebar({ nav = "default", header }: SidebarProps) {
       <nav className="flex flex-1 flex-col gap-1 p-3">
         {items.map((item) => {
           const isActive =
-            item.href === "/platform"
-              ? pathname === item.href
-              : pathname === item.href ||
-                pathname.startsWith(item.href + "/");
+            pathname === item.href ||
+            pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}
@@ -88,6 +87,18 @@ export function Sidebar({ nav = "default", header }: SidebarProps) {
           );
         })}
       </nav>
+
+      {backHref && (
+        <div className="border-t border-border px-3 pt-3">
+          <Link
+            href={backHref}
+            className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-muted-foreground transition-colors hover:bg-accent hover:text-accent-foreground"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to app
+          </Link>
+        </div>
+      )}
 
       {user && (
         <div className="border-t border-border p-3">
