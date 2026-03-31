@@ -33,7 +33,6 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     openGraph: {
       title: `${p.displayName} (@${p.username})`,
       description,
-      ...(p.avatarUrl && { images: [{ url: p.avatarUrl }] }),
     },
   };
 }

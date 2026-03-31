@@ -15,6 +15,7 @@ export const PUBLIC_ROUTES = [
 export const PUBLIC_ROUTE_PREFIXES = [
   "/profile/",
   "/communities/",
+  "/jobs/",
   "/invite/",
   "/api/auth/",
   "/api/profiles/",
