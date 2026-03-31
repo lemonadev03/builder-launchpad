@@ -18,5 +18,13 @@ export default async function AppLayout({
     }
   }
 
+  if (!session) {
+    return (
+      <main className="min-h-screen">
+        <div className="mx-auto max-w-5xl px-4 py-6">{children}</div>
+      </main>
+    );
+  }
+
   return <AppShell>{children}</AppShell>;
 }
