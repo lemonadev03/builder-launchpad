@@ -9,7 +9,7 @@ import {
   OG_MUTED,
   OG_PRIMARY,
   loadFonts,
-  absoluteImageUrl,
+  resolveImageSrc,
   getInitials,
 } from "@/lib/og/utils";
 
@@ -51,7 +51,7 @@ export default async function Image({
       ? ancestors.map((a) => a.name).join("  >  ")
       : null;
 
-  const logoSrc = absoluteImageUrl(c.logoUrl);
+  const logoSrc = await resolveImageSrc(c.logoUrl);
 
   return new ImageResponse(
     (

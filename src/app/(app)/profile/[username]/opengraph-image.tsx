@@ -8,7 +8,7 @@ import {
   OG_MUTED,
   OG_PRIMARY,
   loadFonts,
-  absoluteImageUrl,
+  resolveImageSrc,
   getInitials,
 } from "@/lib/og/utils";
 
@@ -38,7 +38,7 @@ export default async function Image({
     );
   }
 
-  const avatarSrc = absoluteImageUrl(p.avatarUrl);
+  const avatarSrc = await resolveImageSrc(p.avatarUrl);
   const tags = p.tags.slice(0, 5);
 
   return new ImageResponse(

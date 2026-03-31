@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import { getFromS3 } from "@/lib/s3";
 
 // Theme colors — oklch converted to hex for Satori compatibility
 export const OG_BG = "#0f1219";
@@ -72,11 +73,36 @@ export async function loadFonts() {
   ];
 }
 
-export function absoluteImageUrl(
+/**
+ * Resolve an image URL to a data: URI by fetching directly from S3.
+ * Falls back to absolute URL for external images.
+ * Returns null if the image can't be loaded.
+ */
+export async function resolveImageSrc(
   url: string | null | undefined,
-): string | null {
+): Promise<string | null> {
   if (!url) return null;
+
+  // External URL — pass through as-is
   if (url.startsWith("http")) return url;
+
+  // S3 proxy path — fetch directly from S3 and encode as data URI
+  const proxyPrefix = "/api/images/";
+  if (url.startsWith(proxyPrefix)) {
+    const key = url.slice(proxyPrefix.length);
+    try {
+      const res = await getFromS3(key);
+      const contentType = res.ContentType ?? "image/png";
+      const bytes = await res.Body?.transformToByteArray();
+      if (!bytes) return null;
+      const b64 = Buffer.from(bytes).toString("base64");
+      return `data:${contentType};base64,${b64}`;
+    } catch {
+      return null;
+    }
+  }
+
+  // Other relative path — try absolute URL
   const base = process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000";
   return `${base}${url.startsWith("/") ? "" : "/"}${url}`;
 }

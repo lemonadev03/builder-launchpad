@@ -7,7 +7,7 @@ import {
   OG_TEXT,
   OG_MUTED,
   loadFonts,
-  absoluteImageUrl,
+  resolveImageSrc,
   getInitials,
 } from "@/lib/og/utils";
 
@@ -37,7 +37,7 @@ export default async function Image({
     );
   }
 
-  const authorAvatar = absoluteImageUrl(p.authorAvatarUrl);
+  const authorAvatar = await resolveImageSrc(p.authorAvatarUrl);
   const publishedDate = p.publishedAt
     ? p.publishedAt.toLocaleDateString("en-US", { month: "short", year: "numeric" })
     : null;
