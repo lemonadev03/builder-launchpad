@@ -146,35 +146,97 @@ export async function getDirectSisterLinks(communityId: string) {
   });
 }
 
-/** Get all sister links: direct + inherited from ancestors */
+/**
+ * Get all sister links: direct + inherited from ancestors.
+ * Gets ancestors (1 CTE query) then fetches ALL ancestor links in a single query.
+ */
 export async function getAllSisterLinks(communityId: string) {
   const direct = await getDirectSisterLinks(communityId);
-
   const ancestors = await getAncestorChain(communityId);
-  const inherited: SisterLinkWithCommunity[] = [];
 
-  // Collect direct sister IDs for this community to avoid showing duplicates
+  if (ancestors.length === 0) return direct;
+
+  const ancestorIds = ancestors.map((a) => a.id);
+
+  // Fetch ALL sister links for ALL ancestors in one query
+  const ancestorLinks = await db
+    .select({
+      linkId: sisterLink.id,
+      status: sisterLink.status,
+      communityAId: sisterLink.communityAId,
+      communityBId: sisterLink.communityBId,
+      requestedCommunityId: sisterLink.requestedCommunityId,
+      createdAt: sisterLink.createdAt,
+    })
+    .from(sisterLink)
+    .where(
+      and(
+        eq(sisterLink.status, "active"),
+        or(
+          sql`${sisterLink.communityAId} IN (${sql.join(ancestorIds.map((id) => sql`${id}`), sql`, `)})`,
+          sql`${sisterLink.communityBId} IN (${sql.join(ancestorIds.map((id) => sql`${id}`), sql`, `)})`,
+        ),
+      ),
+    );
+
+  // Resolve the "other" community for each link
+  const otherIds = new Set<string>();
+  for (const link of ancestorLinks) {
+    // The "owner" side of the link is whichever ancestor matched
+    const ownerIsA = ancestorIds.includes(link.communityAId);
+    const otherId = ownerIsA ? link.communityBId : link.communityAId;
+    otherIds.add(otherId);
+  }
+
   const directSisterIds = new Set(direct.map((d) => d.communityId));
+  const ancestorIdSet = new Set(ancestorIds);
+  const ancestorNameMap = new Map(ancestors.map((a) => [a.id, a.name]));
 
-  for (const ancestor of ancestors) {
-    const ancestorLinks = await getDirectSisterLinks(ancestor.id);
-    for (const link of ancestorLinks) {
-      if (link.status !== "active") continue;
-      // Skip if this community already has a direct link with the same sister
-      if (directSisterIds.has(link.communityId)) continue;
-      // Skip if already inherited from a closer ancestor
-      if (inherited.some((i) => i.communityId === link.communityId)) continue;
-      // Skip if the sister is one of our own ancestors
-      if (ancestors.some((a) => a.id === link.communityId)) continue;
-      // Skip if the sister is the community itself
-      if (link.communityId === communityId) continue;
+  // Batch-fetch community info for the "other" side
+  const otherIdArr = [...otherIds];
+  let commMap = new Map<string, { id: string; name: string; slug: string; logoUrl: string | null }>();
+  if (otherIdArr.length > 0) {
+    const communities = await db
+      .select({
+        id: community.id,
+        name: community.name,
+        slug: community.slug,
+        logoUrl: community.logoUrl,
+      })
+      .from(community)
+      .where(sql`${community.id} IN (${sql.join(otherIdArr.map((id) => sql`${id}`), sql`, `)})`);
+    commMap = new Map(communities.map((c) => [c.id, c]));
+  }
 
-      inherited.push({
-        ...link,
-        inherited: true,
-        inheritedFromName: ancestor.name,
-      });
-    }
+  const inherited: SisterLinkWithCommunity[] = [];
+  const seenCommunities = new Set<string>();
+
+  for (const link of ancestorLinks) {
+    const ownerIsA = ancestorIds.includes(link.communityAId);
+    const ownerId = ownerIsA ? link.communityAId : link.communityBId;
+    const otherId = ownerIsA ? link.communityBId : link.communityAId;
+
+    // Skip duplicates, self-links, direct links, and ancestor references
+    if (directSisterIds.has(otherId)) continue;
+    if (seenCommunities.has(otherId)) continue;
+    if (ancestorIdSet.has(otherId)) continue;
+    if (otherId === communityId) continue;
+
+    seenCommunities.add(otherId);
+    const comm = commMap.get(otherId);
+
+    inherited.push({
+      linkId: link.linkId,
+      status: link.status,
+      communityId: otherId,
+      communityName: comm?.name ?? "",
+      communitySlug: comm?.slug ?? "",
+      communityLogoUrl: comm?.logoUrl ?? null,
+      requestedCommunityId: link.requestedCommunityId,
+      inherited: true,
+      inheritedFromName: ancestorNameMap.get(ownerId) ?? null,
+      createdAt: link.createdAt,
+    });
   }
 
   return [...direct, ...inherited];
@@ -202,49 +264,59 @@ export async function getDirectSisterLinkCount(
 
 /**
  * Check if a sister link between these two communities (or their ancestors)
- * already exists. Returns the blocking link info or null if clear.
+ * already exists. Fetches both ancestor chains, then checks all pairs in a
+ * single query instead of N*M individual lookups.
  */
 export async function checkDuplicateSisterLink(
   communityAId: string,
   communityBId: string,
 ): Promise<{ exists: boolean; reason?: string }> {
-  // Get ancestor chains for both communities (including themselves)
-  const ancestorsA = await getAncestorChain(communityAId);
-  const ancestorsB = await getAncestorChain(communityBId);
+  const [ancestorsA, ancestorsB] = await Promise.all([
+    getAncestorChain(communityAId),
+    getAncestorChain(communityBId),
+  ]);
 
   const allIdsA = [communityAId, ...ancestorsA.map((a) => a.id)];
   const allIdsB = [communityBId, ...ancestorsB.map((a) => a.id)];
 
-  // Check if any combination of (ancestorOfA, ancestorOfB) has an existing link
+  // Build all canonical pairs, excluding self-links
+  const conditions = [];
   for (const idA of allIdsA) {
     for (const idB of allIdsB) {
       if (idA === idB) continue;
-      const [aId, bId] = canonicalOrder(idA, idB);
-
-      const existing = await db
-        .select({ id: sisterLink.id, status: sisterLink.status })
-        .from(sisterLink)
-        .where(
-          and(
-            eq(sisterLink.communityAId, aId),
-            eq(sisterLink.communityBId, bId),
-          ),
-        )
-        .limit(1);
-
-      if (existing.length > 0) {
-        return {
-          exists: true,
-          reason:
-            idA === communityAId && idB === communityBId
-              ? "A sister link already exists between these communities"
-              : "An ancestor community already has a sister link with this community or its ancestor",
-        };
-      }
+      const [canonical_a, canonical_b] = canonicalOrder(idA, idB);
+      conditions.push(
+        sql`(${sisterLink.communityAId} = ${canonical_a} AND ${sisterLink.communityBId} = ${canonical_b})`,
+      );
     }
   }
 
-  return { exists: false };
+  if (conditions.length === 0) return { exists: false };
+
+  // Single query: check all pairs at once
+  const existing = await db
+    .select({
+      id: sisterLink.id,
+      communityAId: sisterLink.communityAId,
+      communityBId: sisterLink.communityBId,
+    })
+    .from(sisterLink)
+    .where(sql`(${sql.join(conditions, sql` OR `)})`)
+    .limit(1);
+
+  if (existing.length === 0) return { exists: false };
+
+  const hit = existing[0];
+  const isDirect =
+    (hit.communityAId === communityAId || hit.communityAId === communityBId) &&
+    (hit.communityBId === communityAId || hit.communityBId === communityBId);
+
+  return {
+    exists: true,
+    reason: isDirect
+      ? "A sister link already exists between these communities"
+      : "An ancestor community already has a sister link with this community or its ancestor",
+  };
 }
 
 // ── Platform-wide queries ──────────────────────────────────────────

@@ -1,4 +1,4 @@
-import { and, eq, desc, count as drizzleCount } from "drizzle-orm";
+import { and, eq, desc, sql, count as drizzleCount } from "drizzle-orm";
 import { db } from "@/db";
 import { bookmark, post, community, profile, jobListing, company } from "@/db/schema";
 
@@ -58,6 +58,34 @@ export async function isBookmarked(
     .limit(1);
 
   return rows.length > 0;
+}
+
+/**
+ * Batch-check which targets are bookmarked by a user.
+ * Returns Set<targetId> for bookmarked items.
+ */
+export async function getBookmarkedTargetsBatch(
+  userId: string,
+  targetType: "post" | "listing",
+  targetIds: string[],
+): Promise<Set<string>> {
+  if (targetIds.length === 0) return new Set();
+
+  const rows = await db
+    .select({ targetId: bookmark.targetId })
+    .from(bookmark)
+    .where(
+      and(
+        eq(bookmark.userId, userId),
+        eq(bookmark.targetType, targetType),
+        sql`${bookmark.targetId} IN (${sql.join(
+          targetIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`,
+      ),
+    );
+
+  return new Set(rows.map((r) => r.targetId));
 }
 
 export async function getUserPostBookmarks(

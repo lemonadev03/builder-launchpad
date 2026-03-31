@@ -51,28 +51,29 @@ export async function updateMemberRole(
 }
 
 export async function removeMember(membershipId: string) {
-  // Get the membership first to know userId and communityId for cascade
-  const [mem] = await db
-    .select({
-      id: membership.id,
-      userId: membership.userId,
-      communityId: membership.communityId,
-    })
-    .from(membership)
-    .where(eq(membership.id, membershipId))
-    .limit(1);
+  return db.transaction(async (tx) => {
+    const [mem] = await tx
+      .select({
+        id: membership.id,
+        userId: membership.userId,
+        communityId: membership.communityId,
+      })
+      .from(membership)
+      .where(eq(membership.id, membershipId))
+      .limit(1);
 
-  if (!mem) return null;
+    if (!mem) return null;
 
-  const rows = await db
-    .delete(membership)
-    .where(eq(membership.id, membershipId))
-    .returning();
+    const rows = await tx
+      .delete(membership)
+      .where(eq(membership.id, membershipId))
+      .returning();
 
-  // Cascade-remove from all descendants
-  await cascadeLeaveDescendants(mem.userId, mem.communityId);
+    // Cascade-remove from all descendants (within same transaction)
+    await cascadeLeaveDescendants(mem.userId, mem.communityId);
 
-  return rows[0] ?? null;
+    return rows[0] ?? null;
+  });
 }
 
 export async function getMemberCount(communityId: string) {
@@ -165,11 +166,11 @@ export async function leaveCommunity(userId: string, communityId: string) {
     if (adminCount <= 1) return { error: "last_admin" as const };
   }
 
-  // Remove from this community
-  await db.delete(membership).where(eq(membership.id, mem.id));
-
-  // Cascade-remove from all descendants
-  await cascadeLeaveDescendants(userId, communityId);
+  // Atomic: remove from this community + cascade descendants
+  await db.transaction(async (tx) => {
+    await tx.delete(membership).where(eq(membership.id, mem.id));
+    await cascadeLeaveDescendants(userId, communityId);
+  });
 
   return { error: null };
 }

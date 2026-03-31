@@ -6,6 +6,7 @@ import { getSession } from "@/lib/session";
 import { getPersonalFeed } from "@/lib/queries/feed";
 import { getReactionCountsBatch } from "@/lib/queries/reaction";
 import { getCommentCountsBatch } from "@/lib/queries/comment";
+import { getBookmarkedTargetsBatch } from "@/lib/queries/bookmark";
 import { getUserCommunities } from "@/lib/queries/membership";
 import { PostCard } from "@/components/post-card";
 import { BookmarkButton } from "@/components/bookmark-button";
@@ -58,9 +59,10 @@ export default async function FeedPage({ searchParams }: Props) {
   });
 
   const postIds = posts.map((p) => p.id);
-  const [reactionCountsMap, commentCountsMap] = await Promise.all([
+  const [reactionCountsMap, commentCountsMap, bookmarkedSet] = await Promise.all([
     getReactionCountsBatch("post", postIds),
     getCommentCountsBatch(postIds),
+    getBookmarkedTargetsBatch(session.user.id, "post", postIds),
   ]);
 
   const cursorString = nextCursor
@@ -111,7 +113,7 @@ export default async function FeedPage({ searchParams }: Props) {
                 <BookmarkButton
                   targetType="post"
                   targetId={p.id}
-                  bookmarked={false}
+                  bookmarked={bookmarkedSet.has(p.id)}
                 />
               </div>
             </div>

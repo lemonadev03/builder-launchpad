@@ -88,6 +88,43 @@ export async function getUserReactions(
   return rows.map((r) => r.reactionType);
 }
 
+/**
+ * Batch-fetch user reactions for multiple targets in 1 query.
+ * Returns Map<targetId, reactionType[]>.
+ */
+export async function getUserReactionsBatch(
+  userId: string,
+  targetType: "post" | "comment",
+  targetIds: string[],
+) {
+  if (targetIds.length === 0) return new Map<string, string[]>();
+
+  const rows = await db
+    .select({
+      targetId: reaction.targetId,
+      reactionType: reaction.reactionType,
+    })
+    .from(reaction)
+    .where(
+      and(
+        eq(reaction.userId, userId),
+        eq(reaction.targetType, targetType),
+        sql`${reaction.targetId} IN (${sql.join(
+          targetIds.map((id) => sql`${id}`),
+          sql`, `,
+        )})`,
+      ),
+    );
+
+  const map = new Map<string, string[]>();
+  for (const row of rows) {
+    const arr = map.get(row.targetId) ?? [];
+    arr.push(row.reactionType);
+    map.set(row.targetId, arr);
+  }
+  return map;
+}
+
 export async function getReactionCountsBatch(
   targetType: "post" | "comment",
   targetIds: string[],

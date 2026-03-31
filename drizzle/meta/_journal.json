@@ -57,6 +57,13 @@
       "when": 1775052000000,
       "tag": "0007_tidy_starbrand",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1774929571396,
+      "tag": "0008_glamorous_garia",
+      "breakpoints": true
     }
   ]
 }

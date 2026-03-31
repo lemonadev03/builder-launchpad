@@ -10,6 +10,7 @@ import {
   getReactionCounts,
   getUserReactions,
   getReactionCountsBatch,
+  getUserReactionsBatch,
 } from "@/lib/queries/reaction";
 import { isBookmarked } from "@/lib/queries/bookmark";
 import {
@@ -130,16 +131,7 @@ export default async function PostPage({ params }: Props) {
     await Promise.all([
       getReactionCountsBatch("comment", allCommentIds),
       session
-        ? Promise.all(
-            allCommentIds.map(async (id) => ({
-              id,
-              reactions: await getUserReactions(session.user.id, "comment", id),
-            })),
-          ).then((arr) => {
-            const m = new Map<string, string[]>();
-            for (const { id, reactions } of arr) m.set(id, reactions);
-            return m;
-          })
+        ? getUserReactionsBatch(session.user.id, "comment", allCommentIds)
         : Promise.resolve(new Map<string, string[]>()),
       getAuthorRolesBatch(c.id, allAuthorIds),
       session

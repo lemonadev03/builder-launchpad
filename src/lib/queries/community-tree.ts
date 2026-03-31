@@ -1,4 +1,4 @@
-import { and, eq, isNull, count } from "drizzle-orm";
+import { and, eq, isNull, count, sql, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { community, membership } from "@/db/schema";
 
@@ -18,47 +18,42 @@ export type TreeNode = {
 };
 
 /**
- * Get the full ancestor chain for a community, from immediate parent to root.
+ * Get the full ancestor chain for a community, from root → ... → parent.
+ * Uses a recursive CTE instead of a loop (1 query instead of N).
  */
 export async function getAncestorChain(communityId: string) {
-  const ancestors: {
+  const rows: {
     id: string;
     name: string;
     slug: string;
-    parentId: string | null;
+    parent_id: string | null;
     depth: number;
-    subTierLabel: string | null;
-  }[] = [];
+    sub_tier_label: string | null;
+    chain_order: number;
+  }[] = await db.execute(sql`
+    WITH RECURSIVE ancestors AS (
+      SELECT id, name, slug, parent_id, depth, sub_tier_label, 0 AS chain_order
+      FROM community
+      WHERE id = ${communityId}
+      UNION ALL
+      SELECT c.id, c.name, c.slug, c.parent_id, c.depth, c.sub_tier_label, a.chain_order + 1
+      FROM community c
+      JOIN ancestors a ON c.id = a.parent_id
+      WHERE a.chain_order < 5
+    )
+    SELECT * FROM ancestors
+    WHERE id != ${communityId}
+    ORDER BY chain_order DESC
+  `);
 
-  let currentId: string | null = communityId;
-  let iterations = 0;
-
-  while (currentId && iterations < 5) {
-    const [comm] = await db
-      .select({
-        id: community.id,
-        name: community.name,
-        slug: community.slug,
-        parentId: community.parentId,
-        depth: community.depth,
-        subTierLabel: community.subTierLabel,
-      })
-      .from(community)
-      .where(eq(community.id, currentId))
-      .limit(1);
-
-    if (!comm) break;
-
-    // Don't include the starting community itself
-    if (comm.id !== communityId) {
-      ancestors.push(comm);
-    }
-
-    currentId = comm.parentId;
-    iterations++;
-  }
-
-  return ancestors.reverse(); // root → ... → parent
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    slug: r.slug,
+    parentId: r.parent_id,
+    depth: r.depth,
+    subTierLabel: r.sub_tier_label,
+  }));
 }
 
 /**
@@ -88,62 +83,62 @@ export async function getRootCommunityId(
   opts?: { includeArchived?: boolean },
 ) {
   const includeArchived = opts?.includeArchived ?? false;
-  let currentId: string | null = communityId;
-  let rootId = communityId;
-  let iterations = 0;
 
-  while (currentId && iterations < 5) {
-    const [comm] = await db
-      .select({
-        id: community.id,
-        parentId: community.parentId,
-        archivedAt: community.archivedAt,
-      })
-      .from(community)
-      .where(eq(community.id, currentId))
-      .limit(1);
+  const archivedFilter = includeArchived
+    ? sql``
+    : sql`AND c.archived_at IS NULL`;
 
-    if (!comm) break;
-    if (!includeArchived && comm.archivedAt) break;
+  const rows: { id: string }[] = await db.execute(sql`
+    WITH RECURSIVE ancestors AS (
+      SELECT id, parent_id, archived_at
+      FROM community
+      WHERE id = ${communityId}
+      UNION ALL
+      SELECT c.id, c.parent_id, c.archived_at
+      FROM community c
+      JOIN ancestors a ON c.id = a.parent_id
+      WHERE TRUE ${archivedFilter}
+    )
+    SELECT id FROM ancestors
+    ORDER BY (parent_id IS NULL) DESC
+    LIMIT 1
+  `);
 
-    rootId = comm.id;
-    currentId = comm.parentId;
-    iterations++;
-  }
-
-  return rootId;
+  return rows[0]?.id ?? communityId;
 }
 
 /**
  * Get all descendants of a community (recursive, bounded by max depth).
+ * Uses a recursive CTE instead of N queries per depth level.
  */
 export async function getAllDescendants(communityId: string) {
-  const descendants: { id: string; name: string; slug: string; depth: number; parentId: string | null }[] = [];
+  const rows: {
+    id: string;
+    name: string;
+    slug: string;
+    depth: number;
+    parent_id: string | null;
+  }[] = await db.execute(sql`
+    WITH RECURSIVE descendants AS (
+      SELECT id, name, slug, depth, parent_id, 0 AS tree_depth
+      FROM community
+      WHERE parent_id = ${communityId} AND archived_at IS NULL
+      UNION ALL
+      SELECT c.id, c.name, c.slug, c.depth, c.parent_id, d.tree_depth + 1
+      FROM community c
+      JOIN descendants d ON c.parent_id = d.id
+      WHERE c.archived_at IS NULL AND d.tree_depth < ${MAX_DEPTH}
+    )
+    SELECT id, name, slug, depth, parent_id FROM descendants
+  `);
 
-  async function collect(parentId: string, currentDepth: number) {
-    if (currentDepth > MAX_DEPTH) return;
-
-    const children = await db
-      .select({
-        id: community.id,
-        name: community.name,
-        slug: community.slug,
-        depth: community.depth,
-        parentId: community.parentId,
-      })
-      .from(community)
-      .where(
-        and(eq(community.parentId, parentId), isNull(community.archivedAt)),
-      );
-
-    for (const child of children) {
-      descendants.push(child);
-      await collect(child.id, currentDepth + 1);
-    }
-  }
-
-  await collect(communityId, 0);
-  return descendants;
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    slug: r.slug,
+    depth: r.depth,
+    parentId: r.parent_id,
+  }));
 }
 
 /**
@@ -198,6 +193,7 @@ export async function validateSubCommunityCreation(parentId: string) {
 
 /**
  * Get the full tree structure for a root community (for org chart).
+ * Fetches all descendants + member counts in 2 queries, builds tree in memory.
  */
 export async function getCommunityTree(
   rootId: string,
@@ -205,62 +201,81 @@ export async function getCommunityTree(
 ) {
   const includeArchived = opts?.includeArchived ?? false;
 
-  async function buildNode(communityId: string): Promise<TreeNode | null> {
-    const conditions = [eq(community.id, communityId)];
-    if (!includeArchived) {
-      conditions.push(isNull(community.archivedAt));
-    }
+  const archivedFilter = includeArchived
+    ? sql``
+    : sql`AND c.archived_at IS NULL`;
 
-    const [comm] = await db
-      .select({
-        id: community.id,
-        name: community.name,
-        slug: community.slug,
-        logoUrl: community.logoUrl,
-        depth: community.depth,
-        subTierLabel: community.subTierLabel,
-        archivedAt: community.archivedAt,
-      })
-      .from(community)
-      .where(and(...conditions))
-      .limit(1);
+  // 1. Fetch all nodes in the tree with a single recursive CTE
+  const rows: {
+    id: string;
+    name: string;
+    slug: string;
+    logo_url: string | null;
+    depth: number;
+    sub_tier_label: string | null;
+    archived_at: Date | null;
+    parent_id: string | null;
+  }[] = await db.execute(sql`
+    WITH RECURSIVE tree AS (
+      SELECT id, name, slug, logo_url, depth, sub_tier_label, archived_at, parent_id
+      FROM community
+      WHERE id = ${rootId}
+      UNION ALL
+      SELECT c.id, c.name, c.slug, c.logo_url, c.depth, c.sub_tier_label, c.archived_at, c.parent_id
+      FROM community c
+      JOIN tree t ON c.parent_id = t.id
+      WHERE TRUE ${archivedFilter}
+    )
+    SELECT * FROM tree
+  `);
 
-    if (!comm) return null;
+  if (rows.length === 0) return null;
 
-    const [memberCount] = await db
-      .select({ count: count() })
-      .from(membership)
-      .where(
-        and(
-          eq(membership.communityId, communityId),
-          eq(membership.status, "active"),
-        ),
-      );
+  // 2. Batch-fetch member counts for all nodes
+  const nodeIds = rows.map((r) => r.id);
+  const memberCounts = await db
+    .select({
+      communityId: membership.communityId,
+      count: count(),
+    })
+    .from(membership)
+    .where(
+      and(
+        inArray(membership.communityId, nodeIds),
+        eq(membership.status, "active"),
+      ),
+    )
+    .groupBy(membership.communityId);
 
-    const childConditions = [eq(community.parentId, communityId)];
-    if (!includeArchived) {
-      childConditions.push(isNull(community.archivedAt));
-    }
+  const countMap = new Map(memberCounts.map((r) => [r.communityId, r.count]));
 
-    const children = await db
-      .select({ id: community.id })
-      .from(community)
-      .where(and(...childConditions))
-      .orderBy(community.name);
-
-    const childNodes: TreeNode[] = [];
-    for (const child of children) {
-      const node = await buildNode(child.id);
-      if (node) childNodes.push(node);
-    }
-
-    return {
-      ...comm,
-      memberCount: memberCount.count,
-      isArchived: comm.archivedAt !== null,
-      children: childNodes,
-    };
+  // 3. Build tree in memory
+  const nodeMap = new Map<string, TreeNode>();
+  for (const r of rows) {
+    nodeMap.set(r.id, {
+      id: r.id,
+      name: r.name,
+      slug: r.slug,
+      logoUrl: r.logo_url,
+      depth: r.depth,
+      subTierLabel: r.sub_tier_label,
+      memberCount: countMap.get(r.id) ?? 0,
+      isArchived: r.archived_at !== null,
+      children: [],
+    });
   }
 
-  return buildNode(rootId);
+  // Wire up parent → children
+  for (const r of rows) {
+    if (r.parent_id && nodeMap.has(r.parent_id)) {
+      nodeMap.get(r.parent_id)!.children.push(nodeMap.get(r.id)!);
+    }
+  }
+
+  // Sort children by name
+  for (const node of nodeMap.values()) {
+    node.children.sort((a, b) => a.name.localeCompare(b.name));
+  }
+
+  return nodeMap.get(rootId) ?? null;
 }

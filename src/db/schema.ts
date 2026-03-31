@@ -218,6 +218,7 @@ export const community = pgTable(
     index("community_slug_idx").on(table.slug),
     index("community_created_by_idx").on(table.createdBy),
     index("community_parent_id_idx").on(table.parentId),
+    index("community_archived_at_idx").on(table.archivedAt),
   ],
 );
 
@@ -306,6 +307,7 @@ export const membership = pgTable(
     unique("membership_user_community_uniq").on(table.userId, table.communityId),
     index("membership_user_id_idx").on(table.userId),
     index("membership_community_id_idx").on(table.communityId),
+    index("membership_user_status_idx").on(table.userId, table.status),
   ],
 );
 
@@ -346,6 +348,7 @@ export const post = pgTable(
     index("post_author_id_idx").on(table.authorId),
     index("post_slug_community_idx").on(table.slug, table.communityId),
     index("post_status_idx").on(table.status),
+    index("post_published_at_idx").on(table.publishedAt),
   ],
 );
 

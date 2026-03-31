@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { user, membership, community } from "@/db/schema";
+import { user } from "@/db/schema";
 
 // ── Role hierarchy ──────────────────────────────────────────────────
 
@@ -50,48 +50,18 @@ const REQUIRED_ROLE: Record<CommunityAction, CommunityRole> = {
 
 // ── Core permission check ───────────────────────────────────────────
 
-async function getInheritedRole(
-  userId: string,
-  communityId: string,
-  depth: number,
-): Promise<CommunityRole | null> {
-  if (depth <= 0) return null;
-
-  const mem = await db
-    .select({ role: membership.role })
-    .from(membership)
-    .where(
-      and(
-        eq(membership.userId, userId),
-        eq(membership.communityId, communityId),
-        eq(membership.status, "active"),
-      ),
-    )
-    .limit(1);
-
-  if (mem.length > 0) {
-    const role = mem[0].role as CommunityRole;
-    if (ROLE_WEIGHT[role] >= ROLE_WEIGHT.moderator) return role;
-  }
-
-  const comm = await db
-    .select({ parentId: community.parentId })
-    .from(community)
-    .where(eq(community.id, communityId))
-    .limit(1);
-
-  if (comm[0]?.parentId) {
-    return getInheritedRole(userId, comm[0].parentId, depth - 1);
-  }
-
-  return null;
-}
-
+/**
+ * Walk the parent chain in a single recursive CTE and find the effective role.
+ * Returns: direct membership role at the target community,
+ * or the highest inherited role (moderator/admin) from an ancestor.
+ *
+ * 1 query replaces the previous 2*depth recursive calls.
+ */
 export async function getEffectiveRole(
   userId: string,
   communityId: string,
 ): Promise<CommunityRole | null> {
-  // Check platform admin
+  // Check platform admin first (fast path)
   const userRow = await db
     .select({ isPlatformAdmin: user.isPlatformAdmin })
     .from(user)
@@ -100,30 +70,45 @@ export async function getEffectiveRole(
 
   if (userRow[0]?.isPlatformAdmin) return "admin";
 
-  // Check direct membership
-  const mem = await db
-    .select({ role: membership.role })
-    .from(membership)
-    .where(
-      and(
-        eq(membership.userId, userId),
-        eq(membership.communityId, communityId),
-        eq(membership.status, "active"),
-      ),
+  // Single CTE: walk parent chain, join memberships at each level
+  const rows: {
+    community_id: string;
+    chain_depth: number;
+    role: CommunityRole | null;
+  }[] = await db.execute(sql`
+    WITH RECURSIVE parent_chain AS (
+      SELECT id, parent_id, 0 AS chain_depth
+      FROM community
+      WHERE id = ${communityId}
+      UNION ALL
+      SELECT c.id, c.parent_id, pc.chain_depth + 1
+      FROM community c
+      JOIN parent_chain pc ON c.id = pc.parent_id
+      WHERE pc.chain_depth < 4
     )
-    .limit(1);
+    SELECT
+      pc.id AS community_id,
+      pc.chain_depth,
+      m.role
+    FROM parent_chain pc
+    LEFT JOIN membership m
+      ON m.community_id = pc.id
+      AND m.user_id = ${userId}
+      AND m.status = 'active'
+    ORDER BY pc.chain_depth ASC
+  `);
 
-  if (mem.length > 0) return mem[0].role as CommunityRole;
+  // depth 0 = target community: return whatever role the user has (including member)
+  if (rows.length > 0 && rows[0].chain_depth === 0 && rows[0].role) {
+    return rows[0].role;
+  }
 
-  // Check parent chain for cascading admin/mod roles
-  const comm = await db
-    .select({ parentId: community.parentId })
-    .from(community)
-    .where(eq(community.id, communityId))
-    .limit(1);
-
-  if (comm[0]?.parentId) {
-    return getInheritedRole(userId, comm[0].parentId, 4);
+  // depth > 0 = ancestor: only moderator+ cascades down
+  for (const row of rows) {
+    if (row.chain_depth === 0) continue;
+    if (row.role && ROLE_WEIGHT[row.role] >= ROLE_WEIGHT.moderator) {
+      return row.role;
+    }
   }
 
   return null;

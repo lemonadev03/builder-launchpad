@@ -1,90 +1,92 @@
-import { and, eq, isNull, inArray } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { membership, community } from "@/db/schema";
 
 /**
  * Auto-join all ancestor communities when joining a child.
- * Creates membership at each parent level if not already a member.
- * Auto-joined memberships get "member" role.
+ * Uses a recursive CTE to get the full parent chain in 1 query,
+ * then batch-inserts missing memberships.
  */
 export async function joinAncestors(userId: string, communityId: string) {
-  let currentId: string | null = communityId;
-  let iterations = 0;
+  // Get all ancestor IDs in one query
+  const ancestors: { id: string }[] = await db.execute(sql`
+    WITH RECURSIVE ancestors AS (
+      SELECT parent_id
+      FROM community
+      WHERE id = ${communityId}
+      UNION ALL
+      SELECT c.parent_id
+      FROM community c
+      JOIN ancestors a ON c.id = a.parent_id
+      WHERE a.parent_id IS NOT NULL
+    )
+    SELECT parent_id AS id FROM ancestors WHERE parent_id IS NOT NULL
+  `);
 
-  while (currentId && iterations < 5) {
-    const [comm] = await db
-      .select({ parentId: community.parentId })
-      .from(community)
-      .where(eq(community.id, currentId))
-      .limit(1);
+  if (ancestors.length === 0) return;
 
-    if (!comm?.parentId) break;
+  const ancestorIds = ancestors.map((a) => a.id);
 
-    // Check if already a member of parent
-    const existing = await db
-      .select({ id: membership.id })
-      .from(membership)
-      .where(
-        and(
-          eq(membership.userId, userId),
-          eq(membership.communityId, comm.parentId),
-        ),
-      )
-      .limit(1);
+  // Find which ancestors the user is NOT already a member of
+  const existing = await db
+    .select({ communityId: membership.communityId })
+    .from(membership)
+    .where(
+      and(
+        eq(membership.userId, userId),
+        inArray(membership.communityId, ancestorIds),
+      ),
+    );
 
-    if (existing.length === 0) {
-      await db.insert(membership).values({
-        id: crypto.randomUUID(),
-        userId,
-        communityId: comm.parentId,
-        role: "member",
-        status: "active",
-      });
-    }
+  const existingIds = new Set(existing.map((e) => e.communityId));
+  const missing = ancestorIds.filter((id) => !existingIds.has(id));
 
-    currentId = comm.parentId;
-    iterations++;
-  }
+  if (missing.length === 0) return;
+
+  // Batch-insert all missing memberships
+  await db.insert(membership).values(
+    missing.map((communityId) => ({
+      id: crypto.randomUUID(),
+      userId,
+      communityId,
+      role: "member" as const,
+      status: "active" as const,
+    })),
+  );
 }
 
 /**
  * Cascade-remove from all descendants when leaving a parent.
- * Removes membership from the community and all sub-communities.
+ * Uses a recursive CTE to get all descendant IDs in 1 query,
+ * then batch-deletes memberships.
  */
 export async function cascadeLeaveDescendants(
   userId: string,
   communityId: string,
 ) {
-  // Collect all descendant community IDs
-  const descendantIds: string[] = [];
+  const descendants: { id: string }[] = await db.execute(sql`
+    WITH RECURSIVE descendants AS (
+      SELECT id FROM community
+      WHERE parent_id = ${communityId} AND archived_at IS NULL
+      UNION ALL
+      SELECT c.id FROM community c
+      JOIN descendants d ON c.parent_id = d.id
+      WHERE c.archived_at IS NULL
+    )
+    SELECT id FROM descendants
+  `);
 
-  async function collect(parentId: string, depth: number) {
-    if (depth > 4) return;
+  if (descendants.length === 0) return;
 
-    const children = await db
-      .select({ id: community.id })
-      .from(community)
-      .where(
-        and(eq(community.parentId, parentId), isNull(community.archivedAt)),
-      );
-
-    for (const child of children) {
-      descendantIds.push(child.id);
-      await collect(child.id, depth + 1);
-    }
-  }
-
-  await collect(communityId, 0);
-
-  // Batch-remove memberships from all descendants
-  if (descendantIds.length > 0) {
-    await db
-      .delete(membership)
-      .where(
-        and(
-          eq(membership.userId, userId),
-          inArray(membership.communityId, descendantIds),
+  await db
+    .delete(membership)
+    .where(
+      and(
+        eq(membership.userId, userId),
+        inArray(
+          membership.communityId,
+          descendants.map((d) => d.id),
         ),
-      );
-  }
+      ),
+    );
 }
