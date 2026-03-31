@@ -106,8 +106,8 @@ export default async function Image({
 
         {/* Bottom stats */}
         <div style={{ display: "flex", alignItems: "center", marginTop: 20 }}>
-          <div style={{ fontSize: 18, color: OG_MUTED }}>
-            {c.memberCount} {c.memberCount === 1 ? "member" : "members"}
+          <div style={{ fontSize: 18, color: OG_MUTED, display: "flex" }}>
+            {`${c.memberCount} ${c.memberCount === 1 ? "member" : "members"}`}
           </div>
           {c.joinPolicy && (
             <div

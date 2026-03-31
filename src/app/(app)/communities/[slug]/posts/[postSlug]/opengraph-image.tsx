@@ -127,15 +127,13 @@ export default async function Image({
             </div>
           )}
           <div style={{ fontSize: 18, color: OG_MUTED, display: "flex" }}>
-            {p.authorDisplayName}
-            <span style={{ margin: "0 10px", opacity: 0.5 }}>&middot;</span>
-            {p.communityName}
-            {publishedDate && (
-              <>
-                <span style={{ margin: "0 10px", opacity: 0.5 }}>&middot;</span>
-                {publishedDate}
-              </>
-            )}
+            {[
+              p.authorDisplayName,
+              p.communityName,
+              publishedDate,
+            ]
+              .filter(Boolean)
+              .join("  ·  ")}
           </div>
         </div>
       </OgCard>

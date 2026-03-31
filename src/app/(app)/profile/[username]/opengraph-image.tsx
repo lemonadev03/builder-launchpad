@@ -79,8 +79,8 @@ export default async function Image({
             <div style={{ fontSize: 44, fontWeight: 700, color: OG_TEXT, lineHeight: 1.1 }}>
               {p.displayName}
             </div>
-            <div style={{ fontSize: 22, color: OG_MUTED, marginTop: 6 }}>
-              @{p.username}
+            <div style={{ fontSize: 22, color: OG_MUTED, marginTop: 6, display: "flex" }}>
+              {`@${p.username}`}
             </div>
             {p.tagline && (
               <div style={{ fontSize: 22, color: OG_TEXT, marginTop: 16, lineHeight: 1.4, opacity: 0.85 }}>
